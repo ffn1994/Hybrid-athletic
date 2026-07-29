@@ -1,5 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <rect width="512" height="512" fill="#000"/>
-  <rect x="40" y="40" width="432" height="432" rx="80" fill="#121212"/>
-  <text x="256" y="320" font-family="Arial Black, sans-serif" font-size="220" font-weight="900" text-anchor="middle" fill="#FF7A1A">H</text>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF7A1A"/>
+      <stop offset="100%" stop-color="#e03a00"/>
+    </linearGradient>
+  </defs>
+  <!-- Dumbbell bar -->
+  <rect x="80" y="235" width="352" height="42" rx="8" fill="url(#g)"/>
+  <!-- Left weight plates -->
+  <rect x="70" y="195" width="36" height="122" rx="8" fill="url(#g)"/>
+  <rect x="96" y="208" width="28" height="96" rx="6" fill="url(#g)" opacity="0.85"/>
+  <!-- Right weight plates -->
+  <rect x="406" y="195" width="36" height="122" rx="8" fill="url(#g)"/>
+  <rect x="388" y="208" width="28" height="96" rx="6" fill="url(#g)" opacity="0.85"/>
+  <!-- Lightning bolt -->
+  <polygon points="280,100 220,270 265,270 232,412 320,230 270,230 310,100" fill="url(#g)"/>
 </svg>
