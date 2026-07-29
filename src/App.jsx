@@ -182,6 +182,13 @@ const STR = {
 const uid      = () => Math.random().toString(36).slice(2) + Date.now().toString(36).slice(-4);
 const todayStr = () => new Date().toISOString().split('T')[0];
 const fmtSecs  = n  => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+const fmtDateTime = ts => {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const date = d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+};
 
 function calcIntensity(energy, soreness, injury) {
   if (injury) return 'deload';
@@ -978,7 +985,7 @@ export default function App() {
                   }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{def?.icon} {lang === 'ar' ? def?.ar : def?.en}</div>
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }} dir="ltr">{s.date}</div>
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{fmtDateTime(s.endTs || s.ts)}</div>
                     </div>
                     <Tag text={isSkip ? t.skipped : t.completed} color={isSkip ? MUTED : GREEN} />
                   </div>
@@ -1440,7 +1447,7 @@ export default function App() {
                       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>
                         {def?.icon} {lang === 'ar' ? def?.ar : def?.en}
                       </div>
-                      <div style={{ fontSize: 12, color: MUTED }} dir="ltr">{s.date}</div>
+                      <div style={{ fontSize: 12, color: MUTED }}>{fmtDateTime(s.endTs || s.ts)}</div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                         {s.intensity && <Tag text={t[s.intensity]} color={I_COLORS[s.intensity]} />}
                         {vol > 0 && (
