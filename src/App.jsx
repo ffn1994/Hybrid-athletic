@@ -104,6 +104,14 @@ const STR = {
     useLastWeights: 'أوزان الجلسة السابقة',
     volume: 'حجم', totalVol: 'الحجم الكلي',
     export: 'تصدير CSV',
+    navSettings: 'الإعدادات',
+    settings: 'الإعدادات',
+    unitLabel: 'وحدة الوزن',
+    resetData: 'إعادة ضبط البيانات',
+    resetConfirm: 'هل أنت متأكد؟ سيتم حذف كل الجلسات والأوزان نهائياً.',
+    resetBtn: 'إعادة الضبط',
+    cancel: 'إلغاء',
+    langPref: 'اللغة',
   },
   en: {
     app: 'Hybrid Athletic',
@@ -144,6 +152,14 @@ const STR = {
     useLastWeights: 'Use Last Weights',
     volume: 'Vol', totalVol: 'Total Volume',
     export: 'Export CSV',
+    navSettings: 'Settings',
+    settings: 'Settings',
+    unitLabel: 'Weight Unit',
+    resetData: 'Reset All Data',
+    resetConfirm: 'Are you sure? All sessions and weights will be permanently deleted.',
+    resetBtn: 'Reset',
+    cancel: 'Cancel',
+    langPref: 'Language',
   },
 };
 
@@ -277,6 +293,11 @@ function sessionVolume(exercises) {
 }
 
 const INIT_DATA = { di: 0, sessions: [], weights: {} };
+
+const SETTINGS_KEY = 'ha_settings_v1';
+const INIT_SETTINGS = { lang: 'ar', unit: 'kg' };
+function loadSettings() { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)); } catch { return null; } }
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
 // ═══════════════════════════════════════════════════════════════
 // LINE CHART (SVG, no external libs)
@@ -501,6 +522,7 @@ const NAV_TABS = [
   { key: 'home',     icon: '🏠', labelKey: 'navHome' },
   { key: 'progress', icon: '📊', labelKey: 'navProgress' },
   { key: 'history',  icon: '📋', labelKey: 'navHistory' },
+  { key: 'settings', icon: '⚙️', labelKey: 'navSettings' },
 ];
 
 function BottomNav({ screen, onGo, t }) {
@@ -651,24 +673,35 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang }) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function App() {
-  const [lang, setLang]     = useState('ar');
+  const [settings, setSettings] = useState(() => loadSettings() || INIT_SETTINGS);
+  const [lang, setLangState]    = useState(() => (loadSettings() || INIT_SETTINGS).lang);
   const [screen, setScreen] = useState('home');
   const [data, setData]     = useState(() => loadData() || INIT_DATA);
   const [ci, setCi]         = useState({ e: null, s: null, inj: false, injNote: '' });
   const [session, setSession] = useState(null);
   const [notes, setNotes]   = useState('');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  function setLang(updater) {
+    setLangState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      setSettings(s => { const ns = { ...s, lang: next }; saveSettings(ns); return ns; });
+      return next;
+    });
+  }
 
   const [restSecs, setRestSecs]   = useState(0);
   const [restTotal, setRestTotal] = useState(0);
   const [restOn, setRestOn]       = useState(false);
   const restRef                   = useRef(null);
 
-  const t      = STR[lang];
+  const t      = { ...STR[lang], kg: settings.unit };
   const dir    = lang === 'ar' ? 'rtl' : 'ltr';
   const dayDef = PROGRAM[data.di % 4];
   const isCardioDay = dayDef.type === 'cardio' || dayDef.type === 'hiit';
 
   useEffect(() => { saveData(data); }, [data]);
+  useEffect(() => { saveSettings(settings); }, [settings]);
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir  = dir;
@@ -1247,7 +1280,91 @@ export default function App() {
             })
           )}
         </div>
-        <BottomNav screen="history" onGo={go} t={t} />
+        <BottomNav screen={screen} onGo={go} t={t} />
+      </div>
+    );
+  }
+
+  // ─── SETTINGS ───
+
+  if (screen === 'settings') {
+    const OptionRow = ({ label, options, value, onChange }) => (
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, marginBottom: 10 }}>{label}</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {options.map(({ val, label: lbl }) => {
+            const active = value === val;
+            return (
+              <button key={val} onClick={() => onChange(val)} style={{
+                flex: 1, padding: '13px 0', borderRadius: 10,
+                border: `2px solid ${active ? ACCENT : '#2a2a2a'}`,
+                background: active ? ACCENT + '22' : '#111',
+                color: active ? ACCENT : '#fff',
+                fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit',
+              }}>{lbl}</button>
+            );
+          })}
+        </div>
+      </div>
+    );
+
+    return (
+      <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
+        <Header title={t.settings} lang={lang} setLang={setLang} />
+        <div style={{ padding: '20px 16px 100px' }}>
+
+          <div style={{ background: CARD, borderRadius: 16, padding: '16px 16px 8px', marginBottom: 16 }}>
+            <OptionRow
+              label={t.unitLabel}
+              value={settings.unit}
+              onChange={unit => setSettings(s => ({ ...s, unit }))}
+              options={[{ val: 'kg', label: 'kg' }, { val: 'lbs', label: 'lbs' }]}
+            />
+            <OptionRow
+              label={t.langPref}
+              value={lang}
+              onChange={l => setLang(l)}
+              options={[{ val: 'ar', label: 'عربي' }, { val: 'en', label: 'English' }]}
+            />
+          </div>
+
+          <div style={{ background: CARD, borderRadius: 16, padding: 16 }}>
+            <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, marginBottom: 12 }}>{t.resetData}</div>
+            {!showResetConfirm ? (
+              <button onClick={() => setShowResetConfirm(true)} style={{
+                width: '100%', padding: '14px', borderRadius: 10,
+                border: `2px solid ${RED}66`, background: RED + '11',
+                color: RED, fontWeight: 700, fontSize: 15,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>{t.resetData}</button>
+            ) : (
+              <>
+                <div style={{ fontSize: 14, color: MUTED, marginBottom: 14, lineHeight: 1.6 }}>{t.resetConfirm}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setShowResetConfirm(false)} style={{
+                    flex: 1, padding: '13px', borderRadius: 10,
+                    border: '2px solid #2a2a2a', background: '#111',
+                    color: '#fff', fontWeight: 700, fontSize: 15,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}>{t.cancel}</button>
+                  <button onClick={() => {
+                    setData(INIT_DATA);
+                    setSession(null);
+                    setShowResetConfirm(false);
+                    go('home');
+                  }} style={{
+                    flex: 1, padding: '13px', borderRadius: 10,
+                    border: `2px solid ${RED}`, background: RED + '22',
+                    color: RED, fontWeight: 700, fontSize: 15,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}>{t.resetBtn}</button>
+                </div>
+              </>
+            )}
+          </div>
+
+        </div>
+        <BottomNav screen="settings" onGo={go} t={t} />
       </div>
     );
   }
