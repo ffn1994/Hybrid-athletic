@@ -1323,9 +1323,11 @@ export default function App() {
             }}
           />
 
-          <Btn onClick={() => doComplete()} variant={allDone ? 'primary' : 'secondary'}>
-            {t.finishSession}
-          </Btn>
+          {allDone && (
+            <Btn onClick={() => doComplete()} style={{ background: RED, color: '#fff' }}>
+              {t.finishSession}
+            </Btn>
+          )}
         </div>
 
         {restOn && (
