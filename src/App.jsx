@@ -117,6 +117,8 @@ const STR = {
     resetConfirm: 'هل أنت متأكد؟ سيتم حذف كل الجلسات والأوزان نهائياً.',
     resetBtn: 'إعادة الضبط',
     cancel: 'إلغاء',
+    deleteSession: 'حذف الجلسة',
+    deleteConfirm: 'حذف؟',
     langPref: 'اللغة',
   },
   en: {
@@ -171,6 +173,8 @@ const STR = {
     resetConfirm: 'Are you sure? All sessions and weights will be permanently deleted.',
     resetBtn: 'Reset',
     cancel: 'Cancel',
+    deleteSession: 'Delete Session',
+    deleteConfirm: 'Delete?',
     langPref: 'Language',
   },
 };
@@ -700,6 +704,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [notes, setNotes]   = useState('');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
 
   function setLang(updater) {
@@ -766,6 +771,15 @@ export default function App() {
       if (!d.sessions.length || d.sessions[0].status !== 'skipped') return d;
       return { ...d, di: Math.max(0, d.di - 1), sessions: d.sessions.slice(1) };
     });
+  }
+
+  function deleteSessionById(id) {
+    setData(d => ({
+      ...d,
+      di: Math.max(0, d.di - 1),
+      sessions: d.sessions.filter(s => s.id !== id),
+    }));
+    setConfirmDeleteId(null);
   }
 
   function doStartSession() {
@@ -1459,7 +1473,28 @@ export default function App() {
                         )}
                       </div>
                     </div>
-                    <Tag text={isSkip ? t.skipped : t.completed} color={isSkip ? MUTED : GREEN} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                      <Tag text={isSkip ? t.skipped : t.completed} color={isSkip ? MUTED : GREEN} />
+                      {confirmDeleteId === s.id ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => setConfirmDeleteId(null)} style={{
+                            padding: '4px 10px', borderRadius: 6, border: '1px solid #333',
+                            background: '#1a1a1a', color: MUTED, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                          }}>{t.cancel}</button>
+                          <button onClick={() => deleteSessionById(s.id)} style={{
+                            padding: '4px 10px', borderRadius: 6, border: `1px solid ${RED}`,
+                            background: RED + '22', color: RED, fontSize: 11, fontWeight: 700,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                          }}>{t.deleteConfirm}</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(s.id)} style={{
+                          padding: '4px 8px', borderRadius: 6, border: '1px solid #2a2a2a',
+                          background: 'transparent', color: MUTED, fontSize: 14,
+                          cursor: 'pointer', fontFamily: 'inherit',
+                        }}>🗑</button>
+                      )}
+                    </div>
                   </div>
                   {s.notes && (
                     <div style={{ fontSize: 13, color: MUTED, marginTop: 10, paddingTop: 10, borderTop: '1px solid #1e1e1e' }}>
