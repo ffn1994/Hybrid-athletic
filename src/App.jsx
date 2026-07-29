@@ -24,13 +24,13 @@ const PROGRAM = [
     id: 'D1', type: 'strength', icon: '🏋️',
     ar: 'قوة — Full Body A', en: 'Strength — Full Body A',
     exercises: [
-      { name: 'Squat / Leg Press', sets: 4, reps: 5 },
-      { name: 'Bench Press',       sets: 4, reps: 5 },
-      { name: 'Row',               sets: 4, reps: 6 },
-      { name: 'RDL',               sets: 3, reps: 8 },
-      { name: 'Shoulder Press',    sets: 3, reps: 8 },
-      { name: 'Calf Raise',        sets: 3, reps: 15 },
-      { name: 'Plank',             sets: 3, hold: 30 },
+      { name: 'Squat / Leg Press', sets: 4, reps: 5,  muscleAr: 'رباعية الفخذ — المؤخرة',       muscleEn: 'Quads — Glutes' },
+      { name: 'Bench Press',       sets: 4, reps: 5,  muscleAr: 'صدر مستوي',                   muscleEn: 'Chest (Flat)' },
+      { name: 'Row',               sets: 4, reps: 6,  muscleAr: 'الظهر العريض — بايسبس',        muscleEn: 'Lats — Biceps' },
+      { name: 'RDL',               sets: 3, reps: 8,  muscleAr: 'أوتار الركبة — المؤخرة',       muscleEn: 'Hamstrings — Glutes' },
+      { name: 'Shoulder Press',    sets: 3, reps: 8,  muscleAr: 'الكتف الأمامي والجانبي',       muscleEn: 'Front & Side Delts' },
+      { name: 'Calf Raise',        sets: 3, reps: 15, muscleAr: 'ربلة الساق',                   muscleEn: 'Calves' },
+      { name: 'Plank',             sets: 3, hold: 30, muscleAr: 'عضلات الكور',                  muscleEn: 'Core' },
     ],
   },
   {
@@ -44,15 +44,15 @@ const PROGRAM = [
     id: 'D3', type: 'hypertrophy', icon: '💪',
     ar: 'تضخيم — Full Body B', en: 'Hypertrophy — Full Body B',
     exercises: [
-      { name: 'Leg Press',             sets: 4, reps: 10 },
-      { name: 'Incline Press',         sets: 4, reps: 10 },
-      { name: 'Lat Pulldown',          sets: 4, reps: 10 },
-      { name: 'Bulgarian Split Squat', sets: 3, reps: 10, perSide: true },
-      { name: 'Lateral Raise',         sets: 3, reps: 15 },
-      { name: 'Face Pull',             sets: 3, reps: 15 },
-      { name: 'Curl',                  sets: 3, reps: 12 },
-      { name: 'Pushdown',              sets: 3, reps: 12 },
-      { name: 'Pallof Press',          sets: 3, reps: 12, perSide: true },
+      { name: 'Leg Press',             sets: 4, reps: 10, muscleAr: 'رباعية الفخذ',                muscleEn: 'Quads' },
+      { name: 'Incline Press',         sets: 4, reps: 10, muscleAr: 'صدر علوي',                   muscleEn: 'Upper Chest' },
+      { name: 'Lat Pulldown',          sets: 4, reps: 10, muscleAr: 'الظهر العريض',               muscleEn: 'Lats' },
+      { name: 'Bulgarian Split Squat', sets: 3, reps: 10, perSide: true, muscleAr: 'رباعية الفخذ — المؤخرة', muscleEn: 'Quads — Glutes' },
+      { name: 'Lateral Raise',         sets: 3, reps: 15, muscleAr: 'الكتف الجانبي',              muscleEn: 'Side Delts' },
+      { name: 'Face Pull',             sets: 3, reps: 15, muscleAr: 'الكتف الخلفي',              muscleEn: 'Rear Delts' },
+      { name: 'Curl',                  sets: 3, reps: 12, muscleAr: 'بايسبس',                     muscleEn: 'Biceps' },
+      { name: 'Pushdown',              sets: 3, reps: 12, muscleAr: 'ترايسبس',                    muscleEn: 'Triceps' },
+      { name: 'Pallof Press',          sets: 3, reps: 12, perSide: true, muscleAr: 'عضلات الكور', muscleEn: 'Core' },
     ],
   },
   {
@@ -90,10 +90,16 @@ const STR = {
     skipped: 'متخطية', completed: 'مكتملة',
     min: 'دقيقة', timer: 'المؤقت', sessions: 'جلسة',
     restDay: 'يوم راحة',
-    sets: 'سيتات', reps: 'تكرار',
-    intensityFull:    'الشدة كاملة — الجلسة كاملة بالسيتات والأوزان',
-    intensityReduced: 'الشدة مخففة — سيت أقل لكل تمرين',
-    intensityDeload:  'شدة خفيفة — سيتين فقط بأوزان أقل',
+    sets: 'مجموعات', reps: 'تكرار',
+    intensityFull:    'الشدة كاملة — الجلسة كاملة بالمجموعات والأوزان',
+    intensityReduced: 'الشدة مخففة — مجموعة أقل لكل تمرين',
+    intensityDeload:  'شدة خفيفة — مجموعتين فقط بأوزان أقل',
+    tapSet: 'اضغط على الرقم لتسجيل المجموعة',
+    muscle: 'العضلة المستهدفة',
+    program: 'البرنامج الأسبوعي',
+    undoSkip: 'تراجع عن التخطي',
+    splashTagline: 'تتبع تمارينك. ارتقِ بأدائك.',
+    tapStart: 'اضغط للبدء',
     restTimer: 'راحة', skipRest: 'تخطّ',
     progress: 'التقدم', pr: 'الرقم القياسي', noData: 'ما في بيانات بعد',
     noDataSub: 'أكمل جلسة واحدة على الأقل لترى الرسم البياني',
@@ -142,6 +148,12 @@ const STR = {
     intensityFull:    'Full intensity — complete program as written',
     intensityReduced: 'Reduced — one fewer set per exercise',
     intensityDeload:  'Deload — 2 sets per exercise at lower weight',
+    tapSet: 'Tap a number to log the set',
+    muscle: 'Target Muscle',
+    program: 'Weekly Program',
+    undoSkip: 'Undo Skip',
+    splashTagline: 'Track your workouts. Elevate your performance.',
+    tapStart: 'Tap to Start',
     restTimer: 'Rest', skipRest: 'Skip',
     progress: 'Progress', pr: 'PR', noData: 'No data yet',
     noDataSub: 'Complete at least one session to see your chart',
@@ -295,7 +307,7 @@ function sessionVolume(exercises) {
 const INIT_DATA = { di: 0, sessions: [], weights: {} };
 
 const SETTINGS_KEY = 'ha_settings_v1';
-const INIT_SETTINGS = { lang: 'ar', unit: 'kg' };
+const INIT_SETTINGS = { lang: 'ar', unit: 'kg', exUnits: {} };
 function loadSettings() { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)); } catch { return null; } }
 function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
@@ -675,12 +687,13 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang }) {
 export default function App() {
   const [settings, setSettings] = useState(() => loadSettings() || INIT_SETTINGS);
   const [lang, setLangState]    = useState(() => (loadSettings() || INIT_SETTINGS).lang);
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState('splash');
   const [data, setData]     = useState(() => loadData() || INIT_DATA);
   const [ci, setCi]         = useState({ e: null, s: null, inj: false, injNote: '' });
   const [session, setSession] = useState(null);
   const [notes, setNotes]   = useState('');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
 
   function setLang(updater) {
     setLangState(prev => {
@@ -741,6 +754,13 @@ export default function App() {
     setData(d => ({ ...d, di: d.di + 1, sessions: [s, ...d.sessions] }));
   }
 
+  function undoSkip() {
+    setData(d => {
+      if (!d.sessions.length || d.sessions[0].status !== 'skipped') return d;
+      return { ...d, di: Math.max(0, d.di - 1), sessions: d.sessions.slice(1) };
+    });
+  }
+
   function doStartSession() {
     const intensity = calcIntensity(ci.e, ci.s, ci.inj);
     const exercises = dayDef.exercises
@@ -785,6 +805,61 @@ export default function App() {
         startRest(REST_SECS[dayDef.type] ?? 60);
       }
     }
+  }
+
+  // ─── SPLASH ───
+
+  if (screen === 'splash') {
+    return (
+      <div
+        onClick={() => go('home')}
+        style={{
+          position: 'fixed', inset: 0, background: '#000',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          fontFamily: "'Tajawal', sans-serif", cursor: 'pointer', userSelect: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        {/* background glow */}
+        <div style={{
+          position: 'absolute', width: 400, height: 400, borderRadius: '50%',
+          background: `radial-gradient(circle, ${ACCENT}33 0%, transparent 70%)`,
+          top: '50%', left: '50%', transform: 'translate(-50%, -60%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* barbell top decoration */}
+        <svg width="280" height="40" viewBox="0 0 280 40" style={{ marginBottom: 24, opacity: 0.18 }}>
+          <rect x="10" y="16" width="260" height="8" rx="4" fill={ACCENT} />
+          <rect x="0"   y="4"  width="30"  height="32" rx="6" fill={ACCENT} />
+          <rect x="250" y="4"  width="30"  height="32" rx="6" fill={ACCENT} />
+          <rect x="36"  y="8"  width="18"  height="24" rx="4" fill={ACCENT} />
+          <rect x="226" y="8"  width="18"  height="24" rx="4" fill={ACCENT} />
+        </svg>
+
+        {/* logo */}
+        <img src="/icon.png" alt="Hybrid Athletic" style={{ width: 120, height: 120, borderRadius: 28, marginBottom: 24, boxShadow: `0 0 40px ${ACCENT}55` }} />
+
+        <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', marginBottom: 10, letterSpacing: -0.5 }}>
+          Hybrid Athletic
+        </div>
+        <div style={{ fontSize: 15, color: MUTED, marginBottom: 60, textAlign: 'center', lineHeight: 1.6, padding: '0 40px' }}>
+          {t.splashTagline}
+        </div>
+
+        {/* barbell bottom decoration */}
+        <svg width="200" height="50" viewBox="0 0 200 50" style={{ marginBottom: 40, opacity: 0.15 }}>
+          <circle cx="30"  cy="25" r="22" fill="none" stroke={ACCENT} strokeWidth="5" />
+          <circle cx="30"  cy="25" r="12" fill="none" stroke={ACCENT} strokeWidth="3" />
+          <circle cx="170" cy="25" r="22" fill="none" stroke={ACCENT} strokeWidth="5" />
+          <circle cx="170" cy="25" r="12" fill="none" stroke={ACCENT} strokeWidth="3" />
+          <rect x="52" y="21" width="96" height="8" rx="4" fill={ACCENT} opacity="0.6" />
+        </svg>
+
+        <div style={{ fontSize: 13, color: MUTED, opacity: 0.6 }}>{t.tapStart}</div>
+      </div>
+    );
   }
 
   // ─── HOME ───
@@ -850,13 +925,43 @@ export default function App() {
             ))}
           </div>
 
-          {/* Next up */}
-          <div style={{ background: CARD, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>{t.nextUp}</div>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{nextDef.icon} {lang === 'ar' ? nextDef.ar : nextDef.en}</div>
-            </div>
-            <Tag text={nextDef.id} color={DAY_COLORS[nextDef.type]} />
+          {/* Undo skip */}
+          {data.sessions[0]?.status === 'skipped' && data.sessions[0]?.date === todayStr() && (
+            <button onClick={undoSkip} style={{
+              width: '100%', padding: '12px', borderRadius: 12, border: `1px solid ${YELLOW}44`,
+              background: YELLOW + '11', color: YELLOW, fontWeight: 700, fontSize: 14,
+              cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              ↩ {t.undoSkip} ({data.sessions[0].dayId})
+            </button>
+          )}
+
+          {/* 4-day program grid */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, marginBottom: 10 }}>{t.program}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+            {PROGRAM.map((d, idx) => {
+              const isCurrent = (data.di % 4) === idx;
+              const col = DAY_COLORS[d.type];
+              return (
+                <button key={d.id} onClick={() => { setSelectedDay(d); go('dayDetail'); }} style={{
+                  background: isCurrent ? col + '18' : CARD,
+                  border: `2px solid ${isCurrent ? col : '#1e1e1e'}`,
+                  borderRadius: 14, padding: '12px 14px', textAlign: 'start',
+                  cursor: 'pointer', fontFamily: 'inherit', color: '#fff',
+                  transition: 'border-color .15s',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 18 }}>{d.icon}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: col, background: col + '22', padding: '2px 8px', borderRadius: 10 }}>{d.id}</span>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: isCurrent ? col : '#ccc' }}>
+                    {lang === 'ar' ? d.ar : d.en}
+                  </div>
+                  {isCurrent && <div style={{ fontSize: 10, color: ACCENT, marginTop: 2, fontWeight: 700 }}>← {t.today}</div>}
+                </button>
+              );
+            })}
           </div>
 
           {/* Recent sessions */}
@@ -883,6 +988,65 @@ export default function App() {
           )}
         </div>
         <BottomNav screen="home" onGo={go} t={t} />
+      </div>
+    );
+  }
+
+  // ─── DAY DETAIL ───
+
+  if (screen === 'dayDetail' && selectedDay) {
+    const col = DAY_COLORS[selectedDay.type];
+    const isCurrent = (data.di % 4) === PROGRAM.indexOf(selectedDay);
+    return (
+      <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
+        <Header title={selectedDay.id + ' — ' + (lang === 'ar' ? selectedDay.ar : selectedDay.en)} onBack={() => go('home')} lang={lang} setLang={setLang} />
+        <div style={{ padding: '16px 16px 100px' }}>
+
+          {/* Type badge */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: 24 }}>{selectedDay.icon}</span>
+            <Tag text={lang === 'ar' ? selectedDay.ar : selectedDay.en} color={col} />
+            {isCurrent && <Tag text={t.today} color={ACCENT} />}
+          </div>
+
+          {selectedDay.exercises ? (
+            <>
+              <div style={{ fontSize: 12, color: MUTED, marginBottom: 14 }}>{t.tapSet}</div>
+              {selectedDay.exercises.map((ex, i) => (
+                <div key={i} style={{
+                  background: CARD, borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                  border: '1px solid #1e1e1e',
+                }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{ex.name}</div>
+                  <div style={{ fontSize: 12, color: col, fontWeight: 700, marginBottom: 6 }}>
+                    {lang === 'ar' ? ex.muscleAr : ex.muscleEn}
+                  </div>
+                  <div style={{ fontSize: 12, color: MUTED }} dir="ltr">
+                    {ex.sets} × {ex.hold ? `${ex.hold}s hold` : ex.reps}
+                    {ex.perSide ? ` (${t.perSide})` : ''}
+                  </div>
+                </div>
+              ))}
+              {isCurrent && (
+                <Btn onClick={() => go('checkin')} style={{ marginTop: 8 }}>{t.start}</Btn>
+              )}
+            </>
+          ) : (
+            <div style={{ background: CARD, borderRadius: 14, padding: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
+                {lang === 'ar' ? selectedDay.descAr : selectedDay.descEn}
+              </div>
+              {selectedDay.range && (
+                <div style={{ fontSize: 13, color: MUTED }}>
+                  {t.cardioTarget}: {selectedDay.range[0]}–{selectedDay.range[1]} {t.min}
+                </div>
+              )}
+              {isCurrent && (
+                <Btn onClick={() => go('checkin')} style={{ marginTop: 16 }}>{t.start}</Btn>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1075,29 +1239,47 @@ export default function App() {
                 </div>
 
                 {!isHold && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <input
-                      type="number" inputMode="decimal"
-                      value={ex.weight}
-                      onChange={e => patchEx(i, { weight: e.target.value })}
-                      placeholder="0"
-                      style={{
-                        background: '#1e1e1e', border: '1px solid #333', borderRadius: 8,
-                        padding: '9px 0', color: '#fff', fontSize: 18, fontWeight: 700,
-                        width: 72, fontFamily: 'inherit', textAlign: 'center',
-                      }}
-                      dir="ltr"
-                    />
-                    <span style={{ fontSize: 13, color: MUTED }}>{t.kg}</span>
-                    {prevW != null && (
-                      <span style={{ fontSize: 12, color: MUTED, marginInlineStart: 4 }}>
-                        {t.prev}: <span dir="ltr">{prevW}</span>{t.kg}
-                      </span>
-                    )}
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <input
+                        type="number" inputMode="decimal"
+                        value={ex.weight}
+                        onChange={e => patchEx(i, { weight: e.target.value })}
+                        placeholder="0"
+                        style={{
+                          background: '#1e1e1e', border: '1px solid #333', borderRadius: 8,
+                          padding: '9px 0', color: '#fff', fontSize: 18, fontWeight: 700,
+                          width: 72, fontFamily: 'inherit', textAlign: 'center',
+                        }}
+                        dir="ltr"
+                      />
+                      {/* per-exercise unit toggle */}
+                      {['kg', 'lbs'].map(u => {
+                        const exUnit = (settings.exUnits || {})[ex.name] || settings.unit;
+                        const active = exUnit === u;
+                        return (
+                          <button key={u} onClick={() => setSettings(s => ({
+                            ...s, exUnits: { ...(s.exUnits || {}), [ex.name]: u },
+                          }))} style={{
+                            padding: '5px 10px', borderRadius: 8,
+                            border: `1.5px solid ${active ? ACCENT : '#333'}`,
+                            background: active ? ACCENT + '22' : '#1a1a1a',
+                            color: active ? ACCENT : MUTED,
+                            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                          }}>{u}</button>
+                        );
+                      })}
+                      {prevW != null && (
+                        <span style={{ fontSize: 12, color: MUTED }}>
+                          {t.prev}: <span dir="ltr">{prevW}</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Set buttons */}
+                <div style={{ fontSize: 10, color: MUTED, marginBottom: 6, opacity: 0.7 }}>{t.tapSet}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {Array.from({ length: ex.sets }).map((_, si) => {
                     const isDone = si < ex.done;
