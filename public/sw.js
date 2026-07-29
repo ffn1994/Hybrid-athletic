@@ -1,5 +1,5 @@
-const CACHE = 'hybrid-v1';
-const SHELL = ['/', '/src/App.jsx', '/manifest.json', '/icon.svg'];
+const CACHE = 'hybrid-v3';
+const SHELL = ['/', '/src/App.jsx', '/manifest.json', '/icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
