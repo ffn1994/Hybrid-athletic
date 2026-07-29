@@ -99,6 +99,11 @@ const STR = {
     noDataSub: 'أكمل جلسة واحدة على الأقل لترى الرسم البياني',
     lastWeight: 'آخر وزن', change: 'التغيير', navHome: 'الرئيسية',
     navProgress: 'التقدم', navHistory: 'السجل', recent: 'آخر الجلسات',
+    // new
+    streak: 'السلسلة', days: 'يوم',
+    useLastWeights: 'أوزان الجلسة السابقة',
+    volume: 'حجم', totalVol: 'الحجم الكلي',
+    export: 'تصدير CSV',
   },
   en: {
     app: 'Hybrid Athletic',
@@ -134,6 +139,11 @@ const STR = {
     noDataSub: 'Complete at least one session to see your chart',
     lastWeight: 'Last Weight', change: 'Change', navHome: 'Home',
     navProgress: 'Progress', navHistory: 'History', recent: 'Recent Sessions',
+    // new
+    streak: 'Streak', days: 'days',
+    useLastWeights: 'Use Last Weights',
+    volume: 'Vol', totalVol: 'Total Volume',
+    export: 'Export CSV',
   },
 };
 
@@ -171,7 +181,6 @@ function saveData(d) {
 }
 
 function buildWeightHistory(sessions) {
-  // returns { exerciseName: [{date, weight}] } oldest→newest
   const map = {};
   const sorted = [...sessions].filter(s => s.status === 'completed' && s.exercises).reverse();
   sorted.forEach(s => {
@@ -179,7 +188,6 @@ function buildWeightHistory(sessions) {
       const w = Number(ex.weight);
       if (!ex.hold && w > 0) {
         if (!map[ex.name]) map[ex.name] = [];
-        // avoid duplicate date
         const last = map[ex.name][map[ex.name].length - 1];
         if (!last || last.date !== s.date) {
           map[ex.name].push({ date: s.date, weight: w });
@@ -188,6 +196,84 @@ function buildWeightHistory(sessions) {
     });
   });
   return map;
+}
+
+// ── Feature 2: Streak ──────────────────────────────────────────
+function calcStreak(sessions) {
+  const dates = [...new Set(
+    sessions.filter(s => s.status === 'completed').map(s => s.date)
+  )].sort(); // ascending
+  if (!dates.length) return 0;
+  const today = todayStr();
+  const last  = dates[dates.length - 1];
+  const gap   = Math.round((new Date(today) - new Date(last)) / 86400000);
+  if (gap > 1) return 0;
+  let streak = 1;
+  for (let i = dates.length - 1; i > 0; i--) {
+    const diff = Math.round((new Date(dates[i]) - new Date(dates[i - 1])) / 86400000);
+    if (diff === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// ── Feature 3: Last session weights for same day ───────────────
+function getLastSessionWeights(sessions, dayId) {
+  const prev = sessions.find(s => s.status === 'completed' && s.dayId === dayId && s.exercises);
+  if (!prev) return null;
+  const map = {};
+  prev.exercises.forEach(ex => {
+    if (ex.weight !== '' && ex.weight != null) map[ex.name] = String(ex.weight);
+  });
+  return Object.keys(map).length ? map : null;
+}
+
+// ── Feature 5: CSV Export ──────────────────────────────────────
+function buildCSV(sessions) {
+  const rows = sessions.filter(s => s.status === 'completed' && s.exercises);
+  if (!rows.length) return null;
+  const lines = ['Date,Day,Exercise,Sets Done,Reps,Weight(kg),Volume(kg)'];
+  rows.forEach(s => {
+    s.exercises.forEach(ex => {
+      if (!ex.hold && ex.done > 0) {
+        const vol = ex.done * (ex.reps || 0) * (Number(ex.weight) || 0);
+        lines.push([
+          s.date, s.dayId,
+          `"${ex.name}"`,
+          ex.done, ex.reps ?? '', ex.weight ?? 0, vol,
+        ].join(','));
+      }
+    });
+  });
+  return lines.join('\n');
+}
+
+async function handleExport(sessions) {
+  const csv = buildCSV(sessions);
+  if (!csv) return;
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const filename = `hybrid-${todayStr()}.csv`;
+  if (navigator.canShare?.({ files: [new File([blob], filename, { type: 'text/csv' })] })) {
+    try {
+      await navigator.share({ files: [new File([blob], filename, { type: 'text/csv' })], title: 'Hybrid Athletic' });
+      return;
+    } catch {}
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Feature 1: Session volume ──────────────────────────────────
+function sessionVolume(exercises) {
+  if (!exercises) return 0;
+  return exercises.reduce((sum, ex) => {
+    if (ex.hold || !ex.weight) return sum;
+    return sum + ex.done * (ex.reps || 0) * (Number(ex.weight) || 0);
+  }, 0);
 }
 
 const INIT_DATA = { di: 0, sessions: [], weights: {} };
@@ -213,15 +299,12 @@ function LineChart({ points, color = ACCENT }) {
 
   const polyline = points.map((p, i) => `${cx(i)},${cy(p.weight)}`).join(' ');
 
-  // area fill path
   const area = `M${cx(0)},${cy(points[0].weight)} ` +
     points.slice(1).map((p, i) => `L${cx(i + 1)},${cy(p.weight)}`).join(' ') +
     ` L${cx(points.length - 1)},${PT + iH} L${cx(0)},${PT + iH} Z`;
 
-  // Y-axis labels (3 ticks)
   const yTicks = [minW, (minW + maxW) / 2, maxW].map(v => Math.round(v));
 
-  // X-axis: show first, last, and mid if 3+ points
   const xIdxs = points.length >= 3
     ? [0, Math.floor((points.length - 1) / 2), points.length - 1]
     : [0, points.length - 1];
@@ -235,41 +318,20 @@ function LineChart({ points, color = ACCENT }) {
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-
-      {/* Grid lines */}
       {[0, 0.5, 1].map(t => (
-        <line key={t}
-          x1={PL} x2={PL + iW}
-          y1={PT + t * iH} y2={PT + t * iH}
-          stroke="#222" strokeWidth="1"
-        />
+        <line key={t} x1={PL} x2={PL + iW} y1={PT + t * iH} y2={PT + t * iH} stroke="#222" strokeWidth="1" />
       ))}
-
-      {/* Y labels */}
       {yTicks.map((v, i) => (
-        <text key={i}
-          x={PL - 6} y={PT + (1 - i * 0.5) * iH + 4}
-          textAnchor="end" fill={MUTED} fontSize="10"
-        >{v}</text>
+        <text key={i} x={PL - 6} y={PT + (1 - i * 0.5) * iH + 4} textAnchor="end" fill={MUTED} fontSize="10">{v}</text>
       ))}
-
-      {/* Area fill */}
       <path d={area} fill="url(#areaGrad)" />
-
-      {/* Line */}
       <polyline points={polyline} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
-
-      {/* Dots + weight labels */}
       {points.map((p, i) => (
         <g key={i}>
           <circle cx={cx(i)} cy={cy(p.weight)} r="4" fill={color} />
-          <text x={cx(i)} y={cy(p.weight) - 8} textAnchor="middle" fill="#fff" fontSize="9">
-            {p.weight}
-          </text>
+          <text x={cx(i)} y={cy(p.weight) - 8} textAnchor="middle" fill="#fff" fontSize="9">{p.weight}</text>
         </g>
       ))}
-
-      {/* X-axis date labels */}
       {uniqueX.map(i => (
         <text key={i}
           x={cx(i)} y={H - 4}
@@ -286,7 +348,7 @@ function LineChart({ points, color = ACCENT }) {
 // ═══════════════════════════════════════════════════════════════
 
 function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
-  const history = buildWeightHistory(data.sessions);
+  const history   = buildWeightHistory(data.sessions);
   const exercises = Object.keys(history).filter(k => history[k].length > 0);
   const [sel, setSel] = useState(exercises[0] ?? null);
 
@@ -301,7 +363,6 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
       <Header title={t.progress} onBack={onBack} lang={lang} setLang={setLang} />
       <div style={{ padding: '16px 16px 100px' }}>
-
         {exercises.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
@@ -310,7 +371,6 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
           </div>
         ) : (
           <>
-            {/* Exercise chip selector */}
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16 }}>
               {exercises.map(ex => {
                 const active = ex === sel;
@@ -329,7 +389,6 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
 
             {sel && (
               <>
-                {/* Stats row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
                   {[
                     { label: t.pr,         val: pr,     unit: 'kg', color: ACCENT },
@@ -350,17 +409,13 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
                   ))}
                 </div>
 
-                {/* Chart */}
                 <div style={{ background: CARD, borderRadius: 16, padding: '16px 12px 12px', marginBottom: 14 }}>
                   {points.length >= 2
                     ? <LineChart points={points} color={ACCENT} />
-                    : <div style={{ textAlign: 'center', color: MUTED, fontSize: 13, padding: '24px 0' }}>
-                        {t.noDataSub}
-                      </div>
+                    : <div style={{ textAlign: 'center', color: MUTED, fontSize: 13, padding: '24px 0' }}>{t.noDataSub}</div>
                   }
                 </div>
 
-                {/* Per-session list */}
                 <div style={{ fontSize: 13, fontWeight: 700, color: MUTED, marginBottom: 8 }}>{t.recent}</div>
                 {[...points].reverse().map((p, i) => {
                   const isPR = p.weight === pr;
@@ -391,8 +446,8 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
 // ═══════════════════════════════════════════════════════════════
 
 function RestTimerBanner({ secs, total, onSkip, t, dir }) {
-  const urgent   = secs <= 10 && secs > 0;
-  const pct      = total > 0 ? secs / total : 0;
+  const urgent = secs <= 10 && secs > 0;
+  const pct    = total > 0 ? secs / total : 0;
 
   return (
     <div style={{
@@ -404,7 +459,6 @@ function RestTimerBanner({ secs, total, onSkip, t, dir }) {
       transition: 'border-color .3s',
       direction: dir,
     }}>
-      {/* Progress bar */}
       <div style={{ height: 3, background: '#222', borderRadius: 4, marginBottom: 10, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 4,
@@ -413,7 +467,6 @@ function RestTimerBanner({ secs, total, onSkip, t, dir }) {
           transition: 'width 1s linear, background .3s',
         }} />
       </div>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>{t.restTimer}</div>
@@ -507,7 +560,7 @@ function Btn({ children, onClick, variant = 'primary', disabled, style: st }) {
   );
 }
 
-function Header({ title, onBack, lang, setLang }) {
+function Header({ title, onBack, lang, setLang, actions }) {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   return (
     <div style={{
@@ -521,6 +574,7 @@ function Header({ title, onBack, lang, setLang }) {
         </button>
       )}
       <span style={{ fontWeight: 700, fontSize: 17, flex: 1 }}>{title}</span>
+      {actions}
       <button onClick={() => setLang(l => l === 'ar' ? 'en' : 'ar')} style={{
         background: '#1a1a1a', border: 'none', color: MUTED, padding: '5px 11px',
         borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', fontWeight: 700,
@@ -604,7 +658,6 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [notes, setNotes]   = useState('');
 
-  // Rest timer state
   const [restSecs, setRestSecs]   = useState(0);
   const [restTotal, setRestTotal] = useState(0);
   const [restOn, setRestOn]       = useState(false);
@@ -621,14 +674,11 @@ export default function App() {
     document.documentElement.dir  = dir;
   }, [lang, dir]);
 
-  // clear rest timer when leaving workout
   useEffect(() => {
     if (screen !== 'workout') stopRest();
   }, [screen]);
 
   const go = s => setScreen(s);
-
-  // ─── rest timer ───
 
   function startRest(secs) {
     clearInterval(restRef.current);
@@ -652,8 +702,6 @@ export default function App() {
     clearInterval(restRef.current);
     setRestOn(false);
   }
-
-  // ─── actions ───
 
   function doSkip() {
     const s = { id: uid(), date: todayStr(), dayId: dayDef.id, di: data.di % 4, status: 'skipped', ts: Date.now() };
@@ -697,11 +745,9 @@ export default function App() {
   function tapSet(exIdx, si) {
     const ex = session.exercises[exIdx];
     if (si < ex.done) {
-      // un-tap last completed set
       if (si === ex.done - 1) { patchEx(exIdx, { done: si }); stopRest(); }
     } else {
       patchEx(exIdx, { done: si + 1 });
-      // start rest if more sets remain and not a hold exercise
       if (si + 1 < ex.sets && !ex.hold) {
         startRest(REST_SECS[dayDef.type] ?? 60);
       }
@@ -714,6 +760,7 @@ export default function App() {
     const todayDone = data.sessions.some(s => s.date === todayStr());
     const nextDef   = PROGRAM[(data.di + 1) % 4];
     const completed = data.sessions.filter(s => s.status === 'completed');
+    const streak    = calcStreak(data.sessions); // Feature 2
 
     return (
       <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
@@ -756,15 +803,16 @@ export default function App() {
             </div>
           )}
 
-          {/* Stats row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '16px 0' }}>
+          {/* Stats row — 3 cols with streak */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, margin: '16px 0' }}>
             {[
-              { label: t.total,    val: completed.length },
-              { label: t.sessions, val: data.sessions.length },
-            ].map(({ label, val }) => (
-              <div key={label} style={{ background: CARD, borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: ACCENT }} dir="ltr">{val}</div>
-                <div style={{ fontSize: 12, color: MUTED }}>{label}</div>
+              { label: t.total,    val: completed.length, color: ACCENT },
+              { label: t.streak,   val: streak, suffix: streak === 1 ? t.days : t.days, color: streak >= 3 ? YELLOW : '#fff' },
+              { label: t.sessions, val: data.sessions.length, color: '#fff' },
+            ].map(({ label, val, color }) => (
+              <div key={label} style={{ background: CARD, borderRadius: 12, padding: '14px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color }} dir="ltr">{val}</div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -911,26 +959,33 @@ export default function App() {
   // ─── WORKOUT (strength / hypertrophy) ───
 
   if (screen === 'workout' && session?.exercises) {
-    const allDone  = session.exercises.every(ex => ex.done >= ex.sets);
-    const doneCount = session.exercises.filter(ex => ex.done >= ex.sets).length;
-    const pb = restOn ? 148 : 88;   // account for rest banner height + bottom nav
+    const allDone    = session.exercises.every(ex => ex.done >= ex.sets);
+    const doneCount  = session.exercises.filter(ex => ex.done >= ex.sets).length;
+    const pb         = restOn ? 148 : 88;
+    const lastWeights = getLastSessionWeights(data.sessions, session.dayId); // Feature 3
+    const runningVol  = sessionVolume(session.exercises); // Feature 1
 
     return (
       <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
         <Header title={lang === 'ar' ? dayDef.ar : dayDef.en} onBack={() => go('home')} lang={lang} setLang={setLang} />
         <div style={{ padding: `16px 16px ${pb}px` }}>
 
-          {/* Tags row */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          {/* Tags + volume row */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <Tag text={t[session.intensity]} color={I_COLORS[session.intensity]} />
             <Tag text={dayDef.id} color={DAY_COLORS[dayDef.type]} />
-            <span style={{ fontSize: 12, color: MUTED, marginInlineStart: 'auto', alignSelf: 'center' }} dir="ltr">
+            {runningVol > 0 && (
+              <span style={{ fontSize: 12, color: MUTED }} dir="ltr">
+                {t.totalVol}: <span style={{ color: ACCENT, fontWeight: 700 }}>{runningVol.toLocaleString()} kg</span>
+              </span>
+            )}
+            <span style={{ fontSize: 12, color: MUTED, marginInlineStart: 'auto' }} dir="ltr">
               {doneCount}/{session.exercises.length}
             </span>
           </div>
 
           {/* Progress bar */}
-          <div style={{ height: 3, background: '#1e1e1e', borderRadius: 4, marginBottom: 20 }}>
+          <div style={{ height: 3, background: '#1e1e1e', borderRadius: 4, marginBottom: 14 }}>
             <div style={{
               height: '100%', background: ACCENT, borderRadius: 4,
               width: `${(doneCount / session.exercises.length) * 100}%`,
@@ -938,11 +993,36 @@ export default function App() {
             }} />
           </div>
 
+          {/* Feature 3: Use Last Weights button */}
+          {lastWeights && (
+            <button
+              onClick={() => setSession(s => ({
+                ...s,
+                exercises: s.exercises.map(ex =>
+                  lastWeights[ex.name] != null ? { ...ex, weight: lastWeights[ex.name] } : ex
+                ),
+              }))}
+              style={{
+                background: '#1a1a1a', border: `1px solid ${ACCENT}44`,
+                borderRadius: 10, padding: '10px 14px',
+                color: ACCENT, fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+                width: '100%', marginBottom: 14,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              ↩ {t.useLastWeights}
+            </button>
+          )}
+
           {/* Exercise cards */}
           {session.exercises.map((ex, i) => {
             const isHold = !!ex.hold;
             const prevW  = data.weights[ex.name];
             const exDone = ex.done >= ex.sets;
+            const exVol  = !isHold && ex.done > 0 && Number(ex.weight) > 0
+              ? ex.done * (ex.reps || 0) * Number(ex.weight)
+              : 0;
 
             return (
               <div key={ex.name} style={{
@@ -1000,6 +1080,13 @@ export default function App() {
                     );
                   })}
                 </div>
+
+                {/* Feature 1: per-exercise volume */}
+                {exVol > 0 && (
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }} dir="ltr">
+                    {t.volume}: <span style={{ color: '#ccc', fontWeight: 700 }}>{exVol.toLocaleString()} kg</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1019,7 +1106,6 @@ export default function App() {
           </Btn>
         </div>
 
-        {/* Rest timer banner */}
         {restOn && (
           <RestTimerBanner secs={restSecs} total={restTotal} onSkip={stopRest} t={t} dir={dir} />
         )}
@@ -1046,6 +1132,8 @@ export default function App() {
     const nextDef   = PROGRAM[data.di % 4];
     const completed = data.sessions.filter(s => s.status === 'completed');
     const lastS     = data.sessions[0];
+    const vol       = sessionVolume(lastS?.exercises); // Feature 1
+    const streak    = calcStreak(data.sessions);       // Feature 2
 
     return (
       <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
@@ -1055,14 +1143,16 @@ export default function App() {
           <div style={{ fontSize: 28, fontWeight: 800, color: ACCENT, marginBottom: 6 }}>{t.great}</div>
           <div style={{ fontSize: 14, color: MUTED, marginBottom: 36 }}>{t.sessionDone}</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {/* Stats: total | volume | streak */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
             {[
-              { label: t.total,    val: completed.length },
-              { label: t.sessions, val: data.sessions.length },
-            ].map(({ label, val }) => (
-              <div key={label} style={{ background: CARD, borderRadius: 14, padding: '16px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: 30, fontWeight: 800, color: ACCENT }} dir="ltr">{val}</div>
-                <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{label}</div>
+              { label: t.total,    val: completed.length,                               color: ACCENT },
+              { label: t.totalVol, val: vol > 0 ? `${(vol/1000).toFixed(1)}t` : '—',   color: GREEN },
+              { label: t.streak,   val: streak,                                          color: streak >= 3 ? YELLOW : '#fff' },
+            ].map(({ label, val, color }) => (
+              <div key={label} style={{ background: CARD, borderRadius: 14, padding: '16px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color }} dir="ltr">{val}</div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -1103,9 +1193,23 @@ export default function App() {
   // ─── HISTORY ───
 
   if (screen === 'history') {
+    const exportBtn = (
+      <button
+        onClick={() => handleExport(data.sessions)}
+        style={{
+          background: '#1a1a1a', border: `1px solid ${ACCENT}44`,
+          borderRadius: 8, padding: '6px 12px',
+          color: ACCENT, fontSize: 12, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}
+      >
+        📤 {t.export}
+      </button>
+    );
+
     return (
       <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
-        <Header title={t.history} onBack={() => go('home')} lang={lang} setLang={setLang} />
+        <Header title={t.history} onBack={() => go('home')} lang={lang} setLang={setLang} actions={exportBtn} />
         <div style={{ padding: '16px 16px 80px' }}>
           {data.sessions.length === 0 ? (
             <div style={{ textAlign: 'center', color: MUTED, padding: '60px 20px', fontSize: 15 }}>{t.noHist}</div>
@@ -1113,6 +1217,7 @@ export default function App() {
             data.sessions.map(s => {
               const def    = PROGRAM[s.di];
               const isSkip = s.status === 'skipped';
+              const vol    = sessionVolume(s.exercises);
               return (
                 <div key={s.id} style={{ background: CARD, borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1121,11 +1226,14 @@ export default function App() {
                         {def?.icon} {lang === 'ar' ? def?.ar : def?.en}
                       </div>
                       <div style={{ fontSize: 12, color: MUTED }} dir="ltr">{s.date}</div>
-                      {s.intensity && (
-                        <div style={{ marginTop: 6 }}>
-                          <Tag text={t[s.intensity]} color={I_COLORS[s.intensity]} />
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                        {s.intensity && <Tag text={t[s.intensity]} color={I_COLORS[s.intensity]} />}
+                        {vol > 0 && (
+                          <span style={{ fontSize: 11, color: MUTED, alignSelf: 'center' }} dir="ltr">
+                            {t.volume} {vol.toLocaleString()} kg
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <Tag text={isSkip ? t.skipped : t.completed} color={isSkip ? MUTED : GREEN} />
                   </div>
