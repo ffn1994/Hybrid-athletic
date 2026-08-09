@@ -219,6 +219,10 @@ function saveData(d) {
   localStorage.setItem('ha_v1', JSON.stringify(d));
 }
 
+const SESSION_KEY = 'ha_session_v1';
+function loadSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } }
+function saveSession(s) { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }
+
 function buildWeightHistory(sessions) {
   const map = {};
   const sorted = [...sessions].filter(s => s.status === 'completed' && s.exercises).reverse();
@@ -698,10 +702,10 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang }) {
 export default function App() {
   const [settings, setSettings] = useState(() => loadSettings() || INIT_SETTINGS);
   const [lang, setLangState]    = useState(() => (loadSettings() || INIT_SETTINGS).lang);
-  const [screen, setScreen] = useState('splash');
+  const [screen, setScreen] = useState(() => loadSession() ? 'workout' : 'splash');
   const [data, setData]     = useState(() => loadData() || INIT_DATA);
   const [ci, setCi]         = useState({ e: null, s: null, inj: false, injNote: '' });
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => loadSession());
   const [notes, setNotes]   = useState('');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -727,6 +731,7 @@ export default function App() {
 
   useEffect(() => { saveData(data); }, [data]);
   useEffect(() => { saveSettings(settings); }, [settings]);
+  useEffect(() => { saveSession(session); }, [session]);
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir  = dir;
