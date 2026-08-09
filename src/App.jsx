@@ -442,12 +442,12 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
                   {[
-                    { label: t.pr,         val: pr,     unit: 'kg', color: ACCENT },
-                    { label: t.lastWeight,  val: last,   unit: 'kg', color: '#fff' },
+                    { label: t.pr,         val: pr,     unit: t.kg, color: ACCENT },
+                    { label: t.lastWeight,  val: last,   unit: t.kg, color: '#fff' },
                     {
                       label: t.change,
                       val: change != null ? (change > 0 ? `+${change}` : change) : '—',
-                      unit: change != null ? 'kg' : '',
+                      unit: change != null ? t.kg : '',
                       color: change == null ? MUTED : change > 0 ? GREEN : change < 0 ? RED : MUTED,
                     },
                   ].map(({ label, val, unit, color }) => (
@@ -478,7 +478,7 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
                       <div style={{ fontSize: 12, color: MUTED }} dir="ltr">{p.date}</div>
                       <div style={{ fontSize: 15, fontWeight: 700 }} dir="ltr">
                         {isPR && <span style={{ color: ACCENT, marginInlineEnd: 6 }}>🏆</span>}
-                        {p.weight} kg
+                        {p.weight} {t.kg}
                       </div>
                     </div>
                   );
@@ -641,7 +641,7 @@ function Header({ title, onBack, lang, setLang, actions }) {
 // CARDIO SCREEN
 // ═══════════════════════════════════════════════════════════════
 
-function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang, resumeTs }) {
+function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang, resumeTs, onResetTimer }) {
   const initSecs = resumeTs ? Math.floor((Date.now() - resumeTs) / 1000) : 0;
   const [secs, setSecs]       = useState(initSecs);
   const [running, setRunning] = useState(!!resumeTs);
@@ -692,7 +692,7 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang, resumeT
           }}>
             {running ? '⏸' : '▶'}
           </button>
-          <button onClick={() => { setSecs(0); setRunning(false); }} style={{
+          <button onClick={() => { setSecs(0); setRunning(false); onResetTimer?.(); }} style={{
             width: 56, height: 56, borderRadius: '50%',
             border: '2px solid #333',
             background: '#1a1a1a',
@@ -1388,6 +1388,7 @@ export default function App() {
         onBack={() => go('home')}
         onFinish={() => doComplete()}
         resumeTs={session?.ts}
+        onResetTimer={() => setSession(s => s ? { ...s, ts: Date.now() } : s)}
       />
     );
   }

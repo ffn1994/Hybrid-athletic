@@ -1,4 +1,4 @@
-const CACHE = 'hybrid-v4';
+const CACHE = 'hybrid-v5';
 const SHELL = ['/', '/src/App.jsx', '/manifest.json', '/icon.png'];
 
 self.addEventListener('install', e => {
