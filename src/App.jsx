@@ -810,6 +810,7 @@ export default function App() {
       ? applyIntensity(dayDef.exercises, intensity).map(ex => ({
           ...ex,
           weight: data.weights[ex.name] ?? '',
+          actualReps: ex.reps ?? null,
           done: 0,
         }))
       : null;
@@ -1266,7 +1267,7 @@ export default function App() {
             const prevW  = data.weights[ex.name];
             const exDone = ex.done >= ex.sets;
             const exVol  = !isHold && ex.done > 0 && Number(ex.weight) > 0
-              ? ex.done * (ex.reps || 0) * Number(ex.weight)
+              ? ex.done * (Number(ex.actualReps) || ex.reps || 0) * Number(ex.weight)
               : 0;
 
             return (
@@ -1277,10 +1278,31 @@ export default function App() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{ex.name}</div>
-                    <div style={{ fontSize: 12, color: MUTED }} dir="ltr">
-                      {ex.sets} × {isHold ? `${ex.hold}${t.hold}` : ex.reps}
-                      {ex.perSide ? ` (${t.perSide})` : ''}
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{ex.name}</div>
+                    {/* Sets × reps prescription — prominent badges */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <div style={{
+                        background: ACCENT + '22', border: `1px solid ${ACCENT}55`,
+                        borderRadius: 8, padding: '3px 10px',
+                        display: 'flex', alignItems: 'baseline', gap: 4,
+                      }}>
+                        <span style={{ fontSize: 17, fontWeight: 800, color: ACCENT }} dir="ltr">{ex.sets}</span>
+                        <span style={{ fontSize: 11, color: ACCENT + 'cc' }}>{t.sets}</span>
+                      </div>
+                      <span style={{ color: MUTED, fontSize: 13 }}>×</span>
+                      <div style={{
+                        background: '#1e1e1e', border: '1px solid #333',
+                        borderRadius: 8, padding: '3px 10px',
+                        display: 'flex', alignItems: 'baseline', gap: 4,
+                      }}>
+                        <span style={{ fontSize: 17, fontWeight: 800, color: '#fff' }} dir="ltr">
+                          {isHold ? ex.hold : ex.reps}
+                        </span>
+                        <span style={{ fontSize: 11, color: MUTED }}>{isHold ? t.hold : t.reps}</span>
+                      </div>
+                      {ex.perSide && (
+                        <span style={{ fontSize: 11, color: MUTED }}>({t.perSide})</span>
+                      )}
                     </div>
                   </div>
                   {exDone && <span style={{ color: GREEN, fontSize: 18 }}>✓</span>}
@@ -1288,7 +1310,8 @@ export default function App() {
 
                 {!isHold && (
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      {/* Weight input */}
                       <input
                         type="number" inputMode="decimal"
                         value={ex.weight}
@@ -1317,12 +1340,28 @@ export default function App() {
                           }}>{u}</button>
                         );
                       })}
-                      {prevW != null && (
-                        <span style={{ fontSize: 12, color: MUTED }}>
-                          {t.prev}: <span dir="ltr">{prevW}</span>
-                        </span>
-                      )}
+                      {/* Divider */}
+                      <span style={{ color: '#2a2a2a', fontSize: 18, margin: '0 2px' }}>|</span>
+                      {/* Actual reps input */}
+                      <input
+                        type="number" inputMode="numeric"
+                        value={ex.actualReps ?? ''}
+                        onChange={e => patchEx(i, { actualReps: e.target.value })}
+                        placeholder={String(ex.reps ?? '')}
+                        style={{
+                          background: '#1e1e1e', border: '1px solid #333', borderRadius: 8,
+                          padding: '9px 0', color: '#fff', fontSize: 18, fontWeight: 700,
+                          width: 60, fontFamily: 'inherit', textAlign: 'center',
+                        }}
+                        dir="ltr"
+                      />
+                      <span style={{ fontSize: 12, color: MUTED }}>{t.reps}</span>
                     </div>
+                    {prevW != null && (
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: -2 }}>
+                        {t.prev}: <span dir="ltr">{prevW}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
