@@ -680,16 +680,26 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang, resumeT
           {fmtSecs(secs)}
         </div>
         <div style={{ fontSize: 13, color: MUTED, marginBottom: 48 }}>{t.timer}</div>
-        <button onClick={() => setRunning(r => !r)} style={{
-          width: 88, height: 88, borderRadius: '50%',
-          border: `3px solid ${running ? RED : ACCENT}`,
-          background: running ? RED + '22' : ACCENT + '22',
-          color: running ? RED : ACCENT,
-          fontSize: 30, cursor: 'pointer', marginBottom: 48,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {running ? '⏸' : '▶'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, marginBottom: 48 }}>
+          <button onClick={() => setRunning(r => !r)} style={{
+            width: 88, height: 88, borderRadius: '50%',
+            border: `3px solid ${running ? RED : ACCENT}`,
+            background: running ? RED + '22' : ACCENT + '22',
+            color: running ? RED : ACCENT,
+            fontSize: 30, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {running ? '⏸' : '▶'}
+          </button>
+          <button onClick={() => { setSecs(0); setRunning(false); }} style={{
+            width: 56, height: 56, borderRadius: '50%',
+            border: '2px solid #333',
+            background: '#1a1a1a',
+            color: MUTED,
+            fontSize: 22, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>↺</button>
+        </div>
         <Btn onClick={onFinish} style={{ background: reached ? ACCENT : '#1e1e1e', color: reached ? '#000' : '#fff' }}>
           {t.finish}
         </Btn>
