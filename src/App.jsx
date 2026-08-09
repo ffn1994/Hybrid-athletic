@@ -98,6 +98,7 @@ const STR = {
     muscle: 'العضلة المستهدفة',
     program: 'البرنامج الأسبوعي',
     undoSkip: 'تراجع عن التخطي',
+    resumeSession: 'استكمال التمرين',
     splashTagline: 'تتبع تمارينك. ارتقِ بأدائك.',
     tapStart: 'اضغط للبدء',
     restTimer: 'راحة', skipRest: 'تخطّ',
@@ -154,6 +155,7 @@ const STR = {
     muscle: 'Target Muscle',
     program: 'Weekly Program',
     undoSkip: 'Undo Skip',
+    resumeSession: 'Resume Workout',
     splashTagline: 'Track your workouts. Elevate your performance.',
     tapStart: 'Tap to Start',
     restTimer: 'Rest', skipRest: 'Skip',
@@ -702,7 +704,7 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang }) {
 export default function App() {
   const [settings, setSettings] = useState(() => loadSettings() || INIT_SETTINGS);
   const [lang, setLangState]    = useState(() => (loadSettings() || INIT_SETTINGS).lang);
-  const [screen, setScreen] = useState(() => loadSession() ? 'workout' : 'splash');
+  const [screen, setScreen] = useState('splash');
   const [data, setData]     = useState(() => loadData() || INIT_DATA);
   const [ci, setCi]         = useState({ e: null, s: null, inj: false, injNote: '' });
   const [session, setSession] = useState(() => loadSession());
@@ -921,6 +923,12 @@ export default function App() {
                 : (lang === 'ar' ? dayDef.descAr : dayDef.descEn)}
             </div>
           </div>
+
+          {session && (
+            <Btn onClick={() => go(session.exercises ? 'workout' : 'cardio')} style={{ background: '#1a6b3a', color: '#fff', marginBottom: 4 }}>
+              ▶ {t.resumeSession || 'استكمال التمرين'}
+            </Btn>
+          )}
 
           {!todayDone ? (
             <>
