@@ -188,11 +188,12 @@ const STR = {
 const uid      = () => Math.random().toString(36).slice(2) + Date.now().toString(36).slice(-4);
 const todayStr = () => new Date().toISOString().split('T')[0];
 const fmtSecs  = n  => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
-const fmtDateTime = ts => {
+const fmtDateTime = (ts, lang = 'ar') => {
   if (!ts) return '';
+  const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
   const d = new Date(ts);
-  const date = d.toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
-  const time = d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   return `${date} · ${time}`;
 };
 
@@ -792,11 +793,14 @@ export default function App() {
   }
 
   function deleteSessionById(id) {
-    setData(d => ({
-      ...d,
-      di: Math.max(0, d.di - 1),
-      sessions: d.sessions.filter(s => s.id !== id),
-    }));
+    setData(d => {
+      const isMostRecent = d.sessions[0]?.id === id;
+      return {
+        ...d,
+        di: isMostRecent ? Math.max(0, d.di - 1) : d.di,
+        sessions: d.sessions.filter(s => s.id !== id),
+      };
+    });
     setConfirmDeleteId(null);
   }
 
@@ -935,13 +939,11 @@ export default function App() {
             </div>
           </div>
 
-          {session && (
+          {session ? (
             <Btn onClick={() => go(session.exercises ? 'workout' : 'cardio')} style={{ background: '#1a6b3a', color: '#fff', marginBottom: 4 }}>
-              ▶ {t.resumeSession || 'استكمال التمرين'}
+              ▶ {t.resumeSession}
             </Btn>
-          )}
-
-          {!todayDone ? (
+          ) : !todayDone ? (
             <>
               <Btn onClick={() => go('checkin')}>{t.start}</Btn>
               <Btn variant="secondary" onClick={doSkip}>{t.skip}</Btn>
@@ -960,11 +962,12 @@ export default function App() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, margin: '16px 0' }}>
             {[
               { label: t.total,    val: completed.length, color: ACCENT },
-              { label: t.streak,   val: streak, suffix: streak === 1 ? t.days : t.days, color: streak >= 3 ? YELLOW : '#fff' },
+              { label: t.streak,   val: streak, suffix: t.days, color: streak >= 3 ? YELLOW : '#fff' },
               { label: t.sessions, val: data.sessions.length, color: '#fff' },
-            ].map(({ label, val, color }) => (
+            ].map(({ label, val, color, suffix }) => (
               <div key={label} style={{ background: CARD, borderRadius: 12, padding: '14px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 26, fontWeight: 800, color }} dir="ltr">{val}</div>
+                {suffix && <div style={{ fontSize: 10, color: MUTED }} dir="ltr">{suffix}</div>}
                 <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{label}</div>
               </div>
             ))}
@@ -1023,7 +1026,7 @@ export default function App() {
                   }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{def?.icon} {lang === 'ar' ? def?.ar : def?.en}</div>
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{fmtDateTime(s.endTs || s.ts)}</div>
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{fmtDateTime(s.endTs || s.ts, lang)}</div>
                     </div>
                     <Tag text={isSkip ? t.skipped : t.completed} color={isSkip ? MUTED : GREEN} />
                   </div>
@@ -1218,7 +1221,7 @@ export default function App() {
             <Tag text={dayDef.id} color={DAY_COLORS[dayDef.type]} />
             {runningVol > 0 && (
               <span style={{ fontSize: 12, color: MUTED }} dir="ltr">
-                {t.totalVol}: <span style={{ color: ACCENT, fontWeight: 700 }}>{runningVol.toLocaleString()} kg</span>
+                {t.totalVol}: <span style={{ color: ACCENT, fontWeight: 700 }}>{runningVol.toLocaleString()} {t.kg}</span>
               </span>
             )}
             <span style={{ fontSize: 12, color: MUTED, marginInlineStart: 'auto' }} dir="ltr">
@@ -1344,7 +1347,7 @@ export default function App() {
                 {/* Feature 1: per-exercise volume */}
                 {exVol > 0 && (
                   <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }} dir="ltr">
-                    {t.volume}: <span style={{ color: '#ccc', fontWeight: 700 }}>{exVol.toLocaleString()} kg</span>
+                    {t.volume}: <span style={{ color: '#ccc', fontWeight: 700 }}>{exVol.toLocaleString()} {t.kg}</span>
                   </div>
                 )}
               </div>
@@ -1445,11 +1448,14 @@ export default function App() {
 
   if (screen === 'progress') {
     return (
-      <ProgressScreen
-        data={data} t={t} dir={dir} lang={lang}
-        onBack={() => go('home')}
-        setLang={setLang}
-      />
+      <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
+        <ProgressScreen
+          data={data} t={t} dir={dir} lang={lang}
+          onBack={() => go('home')}
+          setLang={setLang}
+        />
+        <BottomNav screen="progress" onGo={go} t={t} />
+      </div>
     );
   }
 
@@ -1488,12 +1494,12 @@ export default function App() {
                       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>
                         {def?.icon} {lang === 'ar' ? def?.ar : def?.en}
                       </div>
-                      <div style={{ fontSize: 12, color: MUTED }}>{fmtDateTime(s.endTs || s.ts)}</div>
+                      <div style={{ fontSize: 12, color: MUTED }}>{fmtDateTime(s.endTs || s.ts, lang)}</div>
                       <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                         {s.intensity && <Tag text={t[s.intensity]} color={I_COLORS[s.intensity]} />}
                         {vol > 0 && (
                           <span style={{ fontSize: 11, color: MUTED, alignSelf: 'center' }} dir="ltr">
-                            {t.volume} {vol.toLocaleString()} kg
+                            {t.volume} {vol.toLocaleString()} {t.kg}
                           </span>
                         )}
                       </div>
