@@ -640,9 +640,10 @@ function Header({ title, onBack, lang, setLang, actions }) {
 // CARDIO SCREEN
 // ═══════════════════════════════════════════════════════════════
 
-function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang }) {
-  const [secs, setSecs]       = useState(0);
-  const [running, setRunning] = useState(false);
+function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang, resumeTs }) {
+  const initSecs = resumeTs ? Math.floor((Date.now() - resumeTs) / 1000) : 0;
+  const [secs, setSecs]       = useState(initSecs);
+  const [running, setRunning] = useState(!!resumeTs);
   const timerRef              = useRef(null);
 
   useEffect(() => {
@@ -704,7 +705,7 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang }) {
 export default function App() {
   const [settings, setSettings] = useState(() => loadSettings() || INIT_SETTINGS);
   const [lang, setLangState]    = useState(() => (loadSettings() || INIT_SETTINGS).lang);
-  const [screen, setScreen] = useState('splash');
+  const [screen, setScreen] = useState(() => loadSession() ? 'home' : 'splash');
   const [data, setData]     = useState(() => loadData() || INIT_DATA);
   const [ci, setCi]         = useState({ e: null, s: null, inj: false, injNote: '' });
   const [session, setSession] = useState(() => loadSession());
@@ -1373,6 +1374,7 @@ export default function App() {
         setLang={setLang}
         onBack={() => go('home')}
         onFinish={() => doComplete()}
+        resumeTs={session?.ts}
       />
     );
   }
