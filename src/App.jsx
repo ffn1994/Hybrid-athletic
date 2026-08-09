@@ -282,7 +282,7 @@ function buildCSV(sessions) {
   rows.forEach(s => {
     s.exercises.forEach(ex => {
       if (!ex.hold && ex.done > 0) {
-        const vol = ex.done * (ex.reps || 0) * (Number(ex.weight) || 0);
+        const vol = ex.done * (Number(ex.actualReps) || ex.reps || 0) * (Number(ex.weight) || 0);
         lines.push([
           s.date, s.dayId,
           `"${ex.name}"`,
@@ -318,7 +318,7 @@ function sessionVolume(exercises) {
   if (!exercises) return 0;
   return exercises.reduce((sum, ex) => {
     if (ex.hold || !ex.weight) return sum;
-    return sum + ex.done * (ex.reps || 0) * (Number(ex.weight) || 0);
+    return sum + ex.done * (Number(ex.actualReps) || ex.reps || 0) * (Number(ex.weight) || 0);
   }, 0);
 }
 
