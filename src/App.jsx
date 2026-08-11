@@ -22,45 +22,55 @@ const REST_SECS = { strength: 90, hypertrophy: 60 };
 const PROGRAM = [
   {
     id: 'D1', type: 'strength', icon: '🏋️',
-    ar: 'قوة — Full Body A', en: 'Strength — Full Body A',
+    ar: 'علوي — جلسة أ', en: 'Upper Body — Session A',
+    cardioEnd: { ar: '🚶 كارديو خفيف', en: '🚶 Light Cardio' },
     exercises: [
-      { name: 'Squat / Leg Press', sets: 4, reps: 5,  muscleAr: 'رباعية الفخذ — المؤخرة',       muscleEn: 'Quads — Glutes' },
-      { name: 'Bench Press',       sets: 4, reps: 5,  muscleAr: 'صدر مستوي',                   muscleEn: 'Chest (Flat)' },
-      { name: 'Row',               sets: 4, reps: 6,  muscleAr: 'الظهر العريض — بايسبس',        muscleEn: 'Lats — Biceps' },
-      { name: 'RDL',               sets: 3, reps: 8,  muscleAr: 'أوتار الركبة — المؤخرة',       muscleEn: 'Hamstrings — Glutes' },
-      { name: 'Shoulder Press',    sets: 3, reps: 8,  muscleAr: 'الكتف الأمامي والجانبي',       muscleEn: 'Front & Side Delts' },
-      { name: 'Calf Raise',        sets: 3, reps: 15, muscleAr: 'ربلة الساق',                   muscleEn: 'Calves' },
-      { name: 'Plank',             sets: 3, hold: 30, muscleAr: 'عضلات الكور',                  muscleEn: 'Core' },
+      { name: 'Incline Press',  sets: 4, reps: 8,  muscleAr: 'صدر علوي',          muscleEn: 'Upper Chest' },
+      { name: 'Bench Press',    sets: 4, reps: 8,  muscleAr: 'صدر مستوي',         muscleEn: 'Chest (Flat)' },
+      { name: 'Lat Pulldown',   sets: 4, reps: 8,  muscleAr: 'ظهر — سحب علوي',   muscleEn: 'Lats (Upper Pull)' },
+      { name: 'Seated Row',     sets: 4, reps: 8,  muscleAr: 'ظهر — سحب أمامي',  muscleEn: 'Lats (Row)' },
+      { name: 'Front Raise',    sets: 3, reps: 10, muscleAr: 'كتف أمامي',         muscleEn: 'Front Delts' },
+      { name: 'Lateral Raise',  sets: 3, reps: 10, muscleAr: 'كتف جانبي',         muscleEn: 'Side Delts' },
+      { name: 'Curl',           sets: 3, reps: 10, muscleAr: 'بايسبس',            muscleEn: 'Biceps' },
+      { name: 'Pushdown',       sets: 3, reps: 10, muscleAr: 'ترايسبس',           muscleEn: 'Triceps' },
     ],
   },
   {
-    id: 'D2', type: 'cardio', icon: '🚶',
-    ar: 'كارديو — Zone 2', en: 'Cardio — Zone 2',
-    descAr: 'مشي مائل · دراجة · رواحة',
-    descEn: 'Incline Walk · Bike · Elliptical',
-    range: [40, 60],
+    id: 'D2', type: 'strength', icon: '🦵',
+    ar: 'ساق — جلسة أ', en: 'Legs — Session A',
+    exercises: [
+      { name: 'Squat',          sets: 4, reps: 8,  muscleAr: 'أفخاذ أمامية',         muscleEn: 'Quads' },
+      { name: 'Leg Curl',       sets: 4, reps: 8,  muscleAr: 'فخذ خلفي',             muscleEn: 'Hamstrings' },
+      { name: 'Deadlift',       sets: 4, reps: 8,  muscleAr: 'أوتار الركبة — ظهر',  muscleEn: 'Hamstrings — Back' },
+      { name: 'Leg Extension',  sets: 3, reps: 10, muscleAr: 'رباعية الفخذ',         muscleEn: 'Quads (Extension)' },
+      { name: 'Calf Raise',     sets: 3, reps: 10, muscleAr: 'ربلة الساق',           muscleEn: 'Calves' },
+    ],
   },
   {
     id: 'D3', type: 'hypertrophy', icon: '💪',
-    ar: 'تضخيم — Full Body B', en: 'Hypertrophy — Full Body B',
+    ar: 'علوي — جلسة ب', en: 'Upper Body — Session B',
+    cardioEnd: { ar: '🚶 كارديو خفيف', en: '🚶 Light Cardio' },
     exercises: [
-      { name: 'Leg Press',             sets: 4, reps: 10, muscleAr: 'رباعية الفخذ',                muscleEn: 'Quads' },
-      { name: 'Incline Press',         sets: 4, reps: 10, muscleAr: 'صدر علوي',                   muscleEn: 'Upper Chest' },
-      { name: 'Lat Pulldown',          sets: 4, reps: 10, muscleAr: 'الظهر العريض',               muscleEn: 'Lats' },
-      { name: 'Bulgarian Split Squat', sets: 3, reps: 10, perSide: true, muscleAr: 'رباعية الفخذ — المؤخرة', muscleEn: 'Quads — Glutes' },
-      { name: 'Lateral Raise',         sets: 3, reps: 15, muscleAr: 'الكتف الجانبي',              muscleEn: 'Side Delts' },
-      { name: 'Face Pull',             sets: 3, reps: 15, muscleAr: 'الكتف الخلفي',              muscleEn: 'Rear Delts' },
-      { name: 'Curl',                  sets: 3, reps: 12, muscleAr: 'بايسبس',                     muscleEn: 'Biceps' },
-      { name: 'Pushdown',              sets: 3, reps: 12, muscleAr: 'ترايسبس',                    muscleEn: 'Triceps' },
-      { name: 'Pallof Press',          sets: 3, reps: 12, perSide: true, muscleAr: 'عضلات الكور', muscleEn: 'Core' },
+      { name: 'Incline Press',  sets: 4, reps: 8,  muscleAr: 'صدر علوي',          muscleEn: 'Upper Chest' },
+      { name: 'Chest Fly',      sets: 4, reps: 8,  muscleAr: 'صدر — تجميع',       muscleEn: 'Chest (Fly)' },
+      { name: 'Lat Pulldown',   sets: 4, reps: 8,  muscleAr: 'ظهر — سحب علوي',   muscleEn: 'Lats (Upper Pull)' },
+      { name: 'Seated Row',     sets: 4, reps: 8,  muscleAr: 'ظهر — سحب أمامي',  muscleEn: 'Lats (Row)' },
+      { name: 'Front Raise',    sets: 3, reps: 10, muscleAr: 'كتف أمامي',         muscleEn: 'Front Delts' },
+      { name: 'Lateral Raise',  sets: 3, reps: 10, muscleAr: 'كتف جانبي',         muscleEn: 'Side Delts' },
+      { name: 'Curl',           sets: 3, reps: 10, muscleAr: 'بايسبس',            muscleEn: 'Biceps' },
+      { name: 'Pushdown',       sets: 3, reps: 10, muscleAr: 'ترايسبس',           muscleEn: 'Triceps' },
     ],
   },
   {
-    id: 'D4', type: 'hiit', icon: '🏃',
-    ar: 'VO2 Max — انترفال', en: 'VO2 Max Intervals',
-    descAr: 'جري سريع / مشي متقطع',
-    descEn: 'Fast Run / Walk Intervals',
-    range: [20, 30],
+    id: 'D4', type: 'hypertrophy', icon: '🦵',
+    ar: 'ساق — جلسة ب', en: 'Legs — Session B',
+    exercises: [
+      { name: 'Leg Press',      sets: 4, reps: 8,  muscleAr: 'رباعية الفخذ',         muscleEn: 'Quads (Press)' },
+      { name: 'Leg Curl',       sets: 4, reps: 8,  muscleAr: 'فخذ خلفي',             muscleEn: 'Hamstrings' },
+      { name: 'Deadlift',       sets: 4, reps: 8,  muscleAr: 'أوتار الركبة — ظهر',  muscleEn: 'Hamstrings — Back' },
+      { name: 'Leg Extension',  sets: 3, reps: 10, muscleAr: 'رباعية الفخذ',         muscleEn: 'Quads (Extension)' },
+      { name: 'Calf Raise',     sets: 3, reps: 10, muscleAr: 'ربلة الساق',           muscleEn: 'Calves' },
+    ],
   },
 ];
 
@@ -1076,6 +1086,17 @@ export default function App() {
                   </div>
                 </div>
               ))}
+              {selectedDay.cardioEnd && (
+                <div style={{
+                  background: '#0b2a2a', border: '1px solid #22d3ee44',
+                  borderRadius: 14, padding: '12px 16px', marginBottom: 10,
+                  display: 'flex', alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: 14, color: '#22d3ee', fontWeight: 700 }}>
+                    {lang === 'ar' ? selectedDay.cardioEnd.ar : selectedDay.cardioEnd.en}
+                  </span>
+                </div>
+              )}
               {isCurrent && (
                 <Btn onClick={() => go('checkin')} style={{ marginTop: 8 }}>{t.start}</Btn>
               )}
@@ -1392,6 +1413,18 @@ export default function App() {
               </div>
             );
           })}
+
+          {dayDef.cardioEnd && (
+            <div style={{
+              background: '#0b2a2a', border: '1px solid #22d3ee44',
+              borderRadius: 14, padding: '12px 16px', marginBottom: 10,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ fontSize: 14, color: '#22d3ee', fontWeight: 700 }}>
+                {lang === 'ar' ? dayDef.cardioEnd.ar : dayDef.cardioEnd.en}
+              </span>
+            </div>
+          )}
 
           <textarea
             rows={2} placeholder={t.ph} value={notes}
