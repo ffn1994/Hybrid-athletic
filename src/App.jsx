@@ -130,6 +130,7 @@ const STR = {
     noWeight: 'لم يُسجَّل بعد',
     nextEx: 'التالي', exRestLabel: 'راحة بين التمارين',
     exDone: 'مكتمل', exLeft: 'باقي',
+    doneEx: 'تم ✓', weightLabel: 'الوزن',
     settings: 'الإعدادات',
     unitLabel: 'وحدة الوزن',
     resetData: 'إعادة ضبط البيانات',
@@ -195,6 +196,7 @@ const STR = {
     noWeight: 'Not logged yet',
     nextEx: 'Next', exRestLabel: 'Exercise Rest',
     exDone: 'Done', exLeft: 'Left',
+    doneEx: 'Done ✓', weightLabel: 'Weight',
     settings: 'Settings',
     unitLabel: 'Weight Unit',
     resetData: 'Reset All Data',
@@ -847,6 +849,8 @@ export default function App() {
   const [dragOverIdx, setDragOverIdx] = useState(null);
   const dragStateRef                  = useRef({ from: null, over: null });
 
+  const [currentExIdx, setCurrentExIdx] = useState(null);
+
   const t      = { ...STR[lang], kg: settings.unit };
   const dir    = lang === 'ar' ? 'rtl' : 'ltr';
   const dayDef = PROGRAM[data.di % 4];
@@ -861,7 +865,7 @@ export default function App() {
   }, [lang, dir]);
 
   useEffect(() => {
-    if (screen !== 'workout') { stopRest(); stopExRest(); }
+    if (screen !== 'workout' && screen !== 'exerciseDetail') { stopRest(); stopExRest(); }
   }, [screen]);
 
   const go = s => setScreen(s);
@@ -1516,189 +1520,70 @@ export default function App() {
             </button>
           )}
 
-          {/* Exercise cards */}
+          {/* Exercise cards — tap to open detail */}
           {session.exercises.map((ex, i) => {
-            const isHold = !!ex.hold;
-            const prevW  = data.weights[ex.name];
-            const exDone = ex.done >= ex.sets;
-            const exVol  = !isHold && ex.done > 0 && Number(ex.weight) > 0
-              ? ex.done * (Number(ex.actualReps) || ex.reps || 0) * Number(ex.weight)
-              : 0;
-
+            const exDone    = ex.done >= ex.sets;
             const isDragging = dragIdx === i;
             const isDragOver = dragOverIdx === i && dragIdx !== null && dragIdx !== i;
             return (
               <div key={ex.name} data-exidx={String(i)} style={{
-                background: CARD, borderRadius: 16, padding: 16, marginBottom: 10,
-                border: `2px solid ${isDragOver ? ACCENT : exDone ? GREEN + '44' : '#1e1e1e'}`,
-                opacity: isDragging ? 0.45 : 1,
+                background: CARD, borderRadius: 16, marginBottom: 10,
+                border: `2px solid ${isDragOver ? ACCENT : exDone ? GREEN + '55' : '#1e1e1e'}`,
+                opacity: isDragging ? 0.4 : 1,
                 transition: 'border-color .15s, opacity .15s',
+                display: 'flex', alignItems: 'stretch', overflow: 'hidden',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span
-                        onTouchStart={() => onDragStart(i)}
-                        onTouchMove={onDragMove}
-                        onTouchEnd={onDragEnd}
-                        style={{
-                          touchAction: 'none', userSelect: 'none',
-                          color: '#3a3a3a', fontSize: 17, cursor: 'grab',
-                          lineHeight: 1, flexShrink: 0,
-                        }}
-                      >⠿</span>
-                      <div style={{ fontSize: 15, fontWeight: 700 }}>{ex.name}</div>
+                {/* Drag handle */}
+                <div
+                  onTouchStart={e => { e.stopPropagation(); onDragStart(i); }}
+                  onTouchMove={onDragMove}
+                  onTouchEnd={onDragEnd}
+                  style={{
+                    padding: '0 13px', display: 'flex', alignItems: 'center',
+                    touchAction: 'none', userSelect: 'none',
+                    color: '#3a3a3a', fontSize: 18, cursor: 'grab',
+                    borderInlineEnd: '1px solid #1e1e1e', flexShrink: 0,
+                  }}
+                >⠿</div>
+
+                {/* Tappable body */}
+                <div
+                  onClick={() => { setCurrentExIdx(i); go('exerciseDetail'); }}
+                  style={{ flex: 1, padding: '14px 12px', cursor: 'pointer', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{ex.name}</div>
+                    <div style={{ fontSize: 11, color: MUTED, marginBottom: 8 }}>
+                      {lang === 'ar' ? ex.muscleAr : ex.muscleEn}
                     </div>
-                    {/* Sets × reps prescription — prominent badges */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <div style={{
-                        background: ACCENT + '22', border: `1px solid ${ACCENT}55`,
-                        borderRadius: 8, padding: '3px 10px',
-                        display: 'flex', alignItems: 'baseline', gap: 4,
-                      }}>
-                        <span style={{ fontSize: 17, fontWeight: 800, color: ACCENT }} dir="ltr">{ex.sets}</span>
-                        <span style={{ fontSize: 11, color: ACCENT + 'cc' }}>{t.sets}</span>
-                      </div>
-                      <span style={{ color: MUTED, fontSize: 13 }}>×</span>
-                      <div style={{
-                        background: '#1e1e1e', border: '1px solid #333',
-                        borderRadius: 8, padding: '3px 10px',
-                        display: 'flex', alignItems: 'baseline', gap: 4,
-                      }}>
-                        <span style={{ fontSize: 17, fontWeight: 800, color: '#fff' }} dir="ltr">
-                          {isHold ? ex.hold : ex.reps}
-                        </span>
-                        <span style={{ fontSize: 11, color: MUTED }}>{isHold ? t.hold : t.reps}</span>
-                      </div>
-                      {ex.perSide && (
-                        <span style={{ fontSize: 11, color: MUTED }}>({t.perSide})</span>
-                      )}
+                    {/* Set progress bars */}
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {Array.from({ length: ex.sets }).map((_, si) => (
+                        <div key={si} style={{
+                          height: 5, flex: 1, borderRadius: 3,
+                          background: si < ex.done ? GREEN : '#2a2a2a',
+                          transition: 'background .2s',
+                          boxShadow: si < ex.done ? `0 0 4px ${GREEN}66` : 'none',
+                        }} />
+                      ))}
                     </div>
                   </div>
-                  {exDone && <span style={{ color: GREEN, fontSize: 18 }}>✓</span>}
-                </div>
-
-                {!isHold && (
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                      {/* Weight input */}
-                      <input
-                        type="number" inputMode="decimal"
-                        value={ex.weight}
-                        onChange={e => patchEx(i, { weight: e.target.value })}
-                        placeholder="0"
-                        style={{
-                          background: '#1e1e1e', border: '1px solid #333', borderRadius: 8,
-                          padding: '9px 0', color: '#fff', fontSize: 18, fontWeight: 700,
-                          width: 72, fontFamily: 'inherit', textAlign: 'center',
-                        }}
-                        dir="ltr"
-                      />
-                      {/* per-exercise unit toggle */}
-                      {['kg', 'lbs'].map(u => {
-                        const exUnit = (settings.exUnits || {})[ex.name] || settings.unit;
-                        const active = exUnit === u;
-                        return (
-                          <button key={u} onClick={() => setSettings(s => ({
-                            ...s, exUnits: { ...(s.exUnits || {}), [ex.name]: u },
-                          }))} style={{
-                            padding: '5px 10px', borderRadius: 8,
-                            border: `1.5px solid ${active ? ACCENT : '#333'}`,
-                            background: active ? ACCENT + '22' : '#1a1a1a',
-                            color: active ? ACCENT : MUTED,
-                            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                          }}>{u}</button>
-                        );
-                      })}
-                      {/* Divider */}
-                      <span style={{ color: '#2a2a2a', fontSize: 18, margin: '0 2px' }}>|</span>
-                      {/* Actual reps input */}
-                      <input
-                        type="number" inputMode="numeric"
-                        value={ex.actualReps ?? ''}
-                        onChange={e => patchEx(i, { actualReps: e.target.value })}
-                        placeholder={String(ex.reps ?? '')}
-                        style={{
-                          background: '#1e1e1e', border: '1px solid #333', borderRadius: 8,
-                          padding: '9px 0', color: '#fff', fontSize: 18, fontWeight: 700,
-                          width: 60, fontFamily: 'inherit', textAlign: 'center',
-                        }}
-                        dir="ltr"
-                      />
-                      <span style={{ fontSize: 12, color: MUTED }}>{t.reps}</span>
-                    </div>
-                    {prevW != null && (
-                      <div style={{ fontSize: 12, color: MUTED, marginTop: -2 }}>
-                        {t.prev}: <span dir="ltr">{prevW}</span>
-                      </div>
-                    )}
-                    {(() => {
-                      const lastCompleted = data.sessions.find(s => s.status === 'completed');
-                      const lastDiff = lastCompleted?.exercises?.find(e => e.name === ex.name)?.difficulty;
-                      const exUnit = (settings.exUnits || {})[ex.name] || settings.unit;
-                      const wStep = exUnit === 'lbs' ? 5 : 2.5;
-                      const suggested = prevW != null && lastDiff === 'easy'
-                        ? Number(prevW) + wStep
-                        : prevW != null && lastDiff === 'hard'
-                          ? Math.max(0, Number(prevW) - wStep)
-                          : null;
-                      if (suggested == null) return null;
-                      const upward = lastDiff === 'easy';
-                      return (
-                        <div style={{ fontSize: 11, color: upward ? GREEN : RED, marginTop: 3 }}>
-                          {upward ? '↑' : '↓'} {t.suggest}: <span dir="ltr">{suggested} {exUnit}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    {exDone
+                      ? <span style={{ color: GREEN, fontSize: 22 }}>✓</span>
+                      : <div style={{
+                          background: ex.done > 0 ? ACCENT + '18' : '#1a1a1a',
+                          borderRadius: 8, padding: '4px 10px',
+                          border: `1px solid ${ex.done > 0 ? ACCENT + '44' : '#2a2a2a'}`,
+                          textAlign: 'center',
+                        }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: ex.done > 0 ? ACCENT : MUTED }} dir="ltr">
+                            {ex.done}/{ex.sets}
+                          </span>
                         </div>
-                      );
-                    })()}
+                    }
+                    <span style={{ color: '#444', fontSize: 18 }}>{dir === 'rtl' ? '‹' : '›'}</span>
                   </div>
-                )}
-
-                {/* Set buttons */}
-                <div style={{ fontSize: 10, color: MUTED, marginBottom: 6, opacity: 0.7 }}>{t.tapSet}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {Array.from({ length: ex.sets }).map((_, si) => {
-                    const isDone = si < ex.done;
-                    return (
-                      <button key={si} onClick={() => tapSet(i, si)} style={{
-                        width: 46, height: 46, borderRadius: 10,
-                        border: `2px solid ${isDone ? GREEN : '#333'}`,
-                        background: isDone ? GREEN + '22' : '#1a1a1a',
-                        color: isDone ? GREEN : MUTED,
-                        fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                        transition: 'all .15s',
-                      }} dir="ltr">{si + 1}</button>
-                    );
-                  })}
-                </div>
-
-                {/* per-exercise volume */}
-                {exVol > 0 && (
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }} dir="ltr">
-                    {t.volume}: <span style={{ color: '#ccc', fontWeight: 700 }}>{exVol.toLocaleString()} {t.kg}</span>
-                  </div>
-                )}
-
-                {/* Difficulty rating */}
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: MUTED }}>{t.diffLabel}:</span>
-                  {[
-                    { key: 'easy',   label: t.diffEasy, color: GREEN },
-                    { key: 'medium', label: t.diffMed,  color: YELLOW },
-                    { key: 'hard',   label: t.diffHard,  color: RED },
-                  ].map(({ key, label, color }) => {
-                    const sel = ex.difficulty === key;
-                    return (
-                      <button key={key} onClick={() => patchEx(i, { difficulty: sel ? null : key })} style={{
-                        padding: '4px 12px', borderRadius: 8,
-                        border: `1px solid ${sel ? color : '#333'}`,
-                        background: sel ? color + '22' : '#1a1a1a',
-                        color: sel ? color : MUTED,
-                        fontSize: 12, fontWeight: sel ? 700 : 400,
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        transition: 'all .15s',
-                      }}>{label}</button>
-                    );
-                  })}
                 </div>
               </div>
             );
@@ -1736,6 +1621,186 @@ export default function App() {
         {restOn && (
           <RestTimerBanner secs={restSecs} total={restTotal} onSkip={stopRest} t={t} dir={dir} />
         )}
+        {exRestOn && !restOn && (
+          <RestTimerBanner secs={exRestSecs} total={exRestTotal} onSkip={stopExRest} t={t} dir={dir} nextExName={exRestNext} />
+        )}
+      </div>
+    );
+  }
+
+  // ─── EXERCISE DETAIL ───
+
+  if (screen === 'exerciseDetail' && session?.exercises && currentExIdx != null) {
+    const ex       = session.exercises[currentExIdx];
+    const isHold   = !!ex.hold;
+    const prevW    = data.weights[ex.name];
+    const exDone   = ex.done >= ex.sets;
+    const exUnit   = (settings.exUnits || {})[ex.name] || settings.unit;
+    const exVol    = !isHold && ex.done > 0 && Number(ex.weight) > 0
+      ? ex.done * (Number(ex.actualReps) || ex.reps || 0) * Number(ex.weight)
+      : 0;
+    const lastCompleted = data.sessions.find(s => s.status === 'completed');
+    const lastDiff      = lastCompleted?.exercises?.find(e => e.name === ex.name)?.difficulty;
+    const wStep         = exUnit === 'lbs' ? 5 : 2.5;
+    const suggested     = prevW != null && lastDiff === 'easy' ? Number(prevW) + wStep
+                        : prevW != null && lastDiff === 'hard' ? Math.max(0, Number(prevW) - wStep)
+                        : null;
+    const upward = lastDiff === 'easy';
+    const pb     = (restOn || exRestOn) ? 148 : 100;
+
+    return (
+      <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
+        <Header title={ex.name} onBack={() => go('workout')} lang={lang} setLang={setLang} />
+        <div style={{ padding: `16px 16px ${pb}px` }}>
+
+          {/* Muscle + prescription row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <span style={{ fontSize: 13, color: MUTED }}>{lang === 'ar' ? ex.muscleAr : ex.muscleEn}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ background: ACCENT + '22', border: `1px solid ${ACCENT}55`, borderRadius: 10, padding: '4px 14px', display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: ACCENT }} dir="ltr">{ex.sets}</span>
+                <span style={{ fontSize: 11, color: ACCENT + 'bb' }}>{t.sets}</span>
+              </div>
+              <span style={{ color: MUTED }}>×</span>
+              <div style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: 10, padding: '4px 14px', display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 20, fontWeight: 800 }} dir="ltr">{isHold ? ex.hold : ex.reps}</span>
+                <span style={{ fontSize: 11, color: MUTED }}>{isHold ? t.hold : t.reps}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Weight card */}
+          {!isHold && (
+            <div style={{ background: CARD, borderRadius: 16, padding: 18, marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>{t.weightLabel}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                <input
+                  type="number" inputMode="decimal"
+                  value={ex.weight}
+                  onChange={e => patchEx(currentExIdx, { weight: e.target.value })}
+                  placeholder="0"
+                  style={{
+                    background: '#1e1e1e', border: '1px solid #333', borderRadius: 12,
+                    padding: '14px 0', color: '#fff', fontSize: 28, fontWeight: 800,
+                    width: 100, fontFamily: 'inherit', textAlign: 'center',
+                  }}
+                  dir="ltr"
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {['kg', 'lbs'].map(u => {
+                    const active = exUnit === u;
+                    return (
+                      <button key={u} onClick={() => setSettings(s => ({ ...s, exUnits: { ...(s.exUnits || {}), [ex.name]: u } }))} style={{
+                        padding: '6px 14px', borderRadius: 10,
+                        border: `1.5px solid ${active ? ACCENT : '#333'}`,
+                        background: active ? ACCENT + '22' : '#1a1a1a',
+                        color: active ? ACCENT : MUTED,
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      }}>{u}</button>
+                    );
+                  })}
+                </div>
+                <div style={{ width: 1, height: 48, background: '#2a2a2a', marginInline: 4 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 11, color: MUTED }}>{t.reps}</div>
+                  <input
+                    type="number" inputMode="numeric"
+                    value={ex.actualReps ?? ''}
+                    onChange={e => patchEx(currentExIdx, { actualReps: e.target.value })}
+                    placeholder={String(ex.reps ?? '')}
+                    style={{
+                      background: '#1e1e1e', border: '1px solid #333', borderRadius: 12,
+                      padding: '14px 0', color: '#fff', fontSize: 28, fontWeight: 800,
+                      width: 80, fontFamily: 'inherit', textAlign: 'center',
+                    }}
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              {prevW != null && (
+                <div style={{ fontSize: 12, color: MUTED }}>
+                  {t.prev}: <span dir="ltr" style={{ color: '#ccc' }}>{prevW} {exUnit}</span>
+                </div>
+              )}
+              {suggested != null && (
+                <div style={{ fontSize: 12, color: upward ? GREEN : RED, marginTop: 4, fontWeight: 700 }}>
+                  {upward ? '↑' : '↓'} {t.suggest}: <span dir="ltr">{suggested} {exUnit}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sets card */}
+          <div style={{ background: CARD, borderRadius: 16, padding: 18, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>{t.tapSet}</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {Array.from({ length: ex.sets }).map((_, si) => {
+                const isDone = si < ex.done;
+                return (
+                  <button key={si} onClick={() => tapSet(currentExIdx, si)} style={{
+                    flex: 1, minWidth: 58, height: 70, borderRadius: 16,
+                    border: `2px solid ${isDone ? GREEN : '#333'}`,
+                    background: isDone ? GREEN + '20' : '#1a1a1a',
+                    color: isDone ? GREEN : MUTED,
+                    fontWeight: 800, fontSize: 22, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+                    transition: 'all .15s',
+                    boxShadow: isDone ? `0 0 12px ${GREEN}44` : 'none',
+                  }} dir="ltr">
+                    {si + 1}
+                    {isDone && <span style={{ fontSize: 10, lineHeight: 1 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {exVol > 0 && (
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 12 }} dir="ltr">
+                {t.volume}: <span style={{ color: '#ccc', fontWeight: 700 }}>{exVol.toLocaleString()} {t.kg}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Difficulty card */}
+          <div style={{ background: CARD, borderRadius: 16, padding: 18, marginBottom: 20 }}>
+            <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>{t.diffLabel}</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[
+                { key: 'easy',   label: t.diffEasy, color: GREEN },
+                { key: 'medium', label: t.diffMed,  color: YELLOW },
+                { key: 'hard',   label: t.diffHard,  color: RED },
+              ].map(({ key, label, color }) => {
+                const sel = ex.difficulty === key;
+                return (
+                  <button key={key} onClick={() => patchEx(currentExIdx, { difficulty: sel ? null : key })} style={{
+                    flex: 1, padding: '14px 6px', borderRadius: 14,
+                    border: `1.5px solid ${sel ? color : '#333'}`,
+                    background: sel ? color + '22' : '#1a1a1a',
+                    color: sel ? color : MUTED,
+                    fontSize: 14, fontWeight: sel ? 700 : 400,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'all .15s',
+                    boxShadow: sel ? `0 0 12px ${color}44` : 'none',
+                  }}>{label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Done button */}
+          <button onClick={() => go('workout')} style={{
+            width: '100%', padding: '18px', borderRadius: 16,
+            border: `2px solid ${exDone ? GREEN : '#2a4a2a'}`,
+            background: exDone ? GREEN : '#0d2a0d',
+            color: exDone ? '#000' : GREEN,
+            fontSize: 17, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'all .2s',
+          }}>
+            {t.doneEx}
+          </button>
+
+        </div>
+
+        {restOn && <RestTimerBanner secs={restSecs} total={restTotal} onSkip={stopRest} t={t} dir={dir} />}
         {exRestOn && !restOn && (
           <RestTimerBanner secs={exRestSecs} total={exRestTotal} onSkip={stopExRest} t={t} dir={dir} nextExName={exRestNext} />
         )}
