@@ -128,6 +128,7 @@ const STR = {
     sessionBanner: 'جلسة مفتوحة', sessionBannerSub: 'اضغط للاستكمال',
     navSettings: 'الإعدادات',
     noWeight: 'لم يُسجَّل بعد',
+    nextEx: 'التالي', exRestLabel: 'راحة بين التمارين',
     settings: 'الإعدادات',
     unitLabel: 'وحدة الوزن',
     resetData: 'إعادة ضبط البيانات',
@@ -191,6 +192,7 @@ const STR = {
     sessionBanner: 'Open Session', sessionBannerSub: 'Tap to resume',
     navSettings: 'Settings',
     noWeight: 'Not logged yet',
+    nextEx: 'Next', exRestLabel: 'Exercise Rest',
     settings: 'Settings',
     unitLabel: 'Weight Unit',
     resetData: 'Reset All Data',
@@ -584,7 +586,7 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
 // REST TIMER BANNER
 // ═══════════════════════════════════════════════════════════════
 
-function RestTimerBanner({ secs, total, onSkip, t, dir }) {
+function RestTimerBanner({ secs, total, onSkip, t, dir, nextExName }) {
   const urgent = secs <= 10 && secs > 0;
   const pct    = total > 0 ? secs / total : 0;
 
@@ -608,7 +610,14 @@ function RestTimerBanner({ secs, total, onSkip, t, dir }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>{t.restTimer}</div>
+          <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>
+            {nextExName ? t.exRestLabel : t.restTimer}
+          </div>
+          {nextExName && (
+            <div style={{ fontSize: 12, color: ACCENT, marginBottom: 3, fontWeight: 700 }}>
+              {t.nextEx}: {nextExName}
+            </div>
+          )}
           <div style={{
             fontSize: 28, fontWeight: 800,
             color: urgent ? RED : '#fff',
@@ -826,6 +835,16 @@ export default function App() {
   const [restOn, setRestOn]       = useState(false);
   const restRef                   = useRef(null);
 
+  const [exRestOn, setExRestOn]     = useState(false);
+  const [exRestSecs, setExRestSecs] = useState(0);
+  const [exRestTotal, setExRestTotal] = useState(0);
+  const [exRestNext, setExRestNext] = useState('');
+  const exRestRef                   = useRef(null);
+
+  const [dragIdx, setDragIdx]         = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const dragStateRef                  = useRef({ from: null, over: null });
+
   const t      = { ...STR[lang], kg: settings.unit };
   const dir    = lang === 'ar' ? 'rtl' : 'ltr';
   const dayDef = PROGRAM[data.di % 4];
@@ -840,7 +859,7 @@ export default function App() {
   }, [lang, dir]);
 
   useEffect(() => {
-    if (screen !== 'workout') stopRest();
+    if (screen !== 'workout') { stopRest(); stopExRest(); }
   }, [screen]);
 
   const go = s => setScreen(s);
@@ -866,6 +885,66 @@ export default function App() {
   function stopRest() {
     clearInterval(restRef.current);
     setRestOn(false);
+  }
+
+  function startExRest(nextName) {
+    clearInterval(exRestRef.current);
+    stopRest();
+    const secs = 90;
+    setExRestSecs(secs);
+    setExRestTotal(secs);
+    setExRestNext(nextName);
+    setExRestOn(true);
+    exRestRef.current = setInterval(() => {
+      setExRestSecs(s => {
+        if (s <= 1) {
+          clearInterval(exRestRef.current);
+          setExRestOn(false);
+          navigator.vibrate?.([200, 100, 200]);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }
+
+  function stopExRest() {
+    clearInterval(exRestRef.current);
+    setExRestOn(false);
+  }
+
+  function onDragStart(i) {
+    dragStateRef.current = { from: i, over: i };
+    setDragIdx(i);
+    setDragOverIdx(i);
+  }
+
+  function onDragMove(e) {
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const card = el?.closest('[data-exidx]');
+    if (card) {
+      const idx = parseInt(card.getAttribute('data-exidx'));
+      if (!isNaN(idx) && idx !== dragStateRef.current.over) {
+        dragStateRef.current.over = idx;
+        setDragOverIdx(idx);
+      }
+    }
+  }
+
+  function onDragEnd() {
+    const { from, over } = dragStateRef.current;
+    dragStateRef.current = { from: null, over: null };
+    setDragIdx(null);
+    setDragOverIdx(null);
+    if (from !== null && over !== null && from !== over) {
+      setSession(s => {
+        const exs = [...s.exercises];
+        const [item] = exs.splice(from, 1);
+        exs.splice(over, 0, item);
+        return { ...s, exercises: exs };
+      });
+    }
   }
 
   function doSkip() {
@@ -931,11 +1010,17 @@ export default function App() {
   function tapSet(exIdx, si) {
     const ex = session.exercises[exIdx];
     if (si < ex.done) {
-      if (si === ex.done - 1) { patchEx(exIdx, { done: si }); stopRest(); }
+      if (si === ex.done - 1) { patchEx(exIdx, { done: si }); stopRest(); stopExRest(); }
     } else {
       patchEx(exIdx, { done: si + 1 });
-      if (si + 1 < ex.sets && !ex.hold) {
+      const newDone = si + 1;
+      if (newDone < ex.sets && !ex.hold) {
+        stopExRest();
         startRest(REST_SECS[dayDef.type] ?? 60);
+      } else if (newDone === ex.sets) {
+        stopRest();
+        const nextEx = session.exercises[exIdx + 1];
+        if (nextEx) startExRest(nextEx.name);
       }
     }
   }
@@ -1323,7 +1408,7 @@ export default function App() {
   if (screen === 'workout' && session?.exercises) {
     const allDone    = session.exercises.every(ex => ex.done >= ex.sets);
     const doneCount  = session.exercises.filter(ex => ex.done >= ex.sets).length;
-    const pb         = restOn ? 148 : 88;
+    const pb         = (restOn || exRestOn) ? 148 : 88;
     const lastWeights = getLastSessionWeights(data.sessions, session.dayId); // Feature 3
     const runningVol  = sessionVolume(session.exercises); // Feature 1
 
@@ -1386,15 +1471,30 @@ export default function App() {
               ? ex.done * (Number(ex.actualReps) || ex.reps || 0) * Number(ex.weight)
               : 0;
 
+            const isDragging = dragIdx === i;
+            const isDragOver = dragOverIdx === i && dragIdx !== null && dragIdx !== i;
             return (
-              <div key={ex.name} style={{
+              <div key={ex.name} data-exidx={String(i)} style={{
                 background: CARD, borderRadius: 16, padding: 16, marginBottom: 10,
-                border: `1px solid ${exDone ? GREEN + '44' : '#1e1e1e'}`,
-                transition: 'border-color .2s',
+                border: `2px solid ${isDragOver ? ACCENT : exDone ? GREEN + '44' : '#1e1e1e'}`,
+                opacity: isDragging ? 0.45 : 1,
+                transition: 'border-color .15s, opacity .15s',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{ex.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span
+                        onTouchStart={() => onDragStart(i)}
+                        onTouchMove={onDragMove}
+                        onTouchEnd={onDragEnd}
+                        style={{
+                          touchAction: 'none', userSelect: 'none',
+                          color: '#3a3a3a', fontSize: 17, cursor: 'grab',
+                          lineHeight: 1, flexShrink: 0,
+                        }}
+                      >⠿</span>
+                      <div style={{ fontSize: 15, fontWeight: 700 }}>{ex.name}</div>
+                    </div>
                     {/* Sets × reps prescription — prominent badges */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <div style={{
@@ -1581,6 +1681,9 @@ export default function App() {
 
         {restOn && (
           <RestTimerBanner secs={restSecs} total={restTotal} onSkip={stopRest} t={t} dir={dir} />
+        )}
+        {exRestOn && !restOn && (
+          <RestTimerBanner secs={exRestSecs} total={exRestTotal} onSkip={stopExRest} t={t} dir={dir} nextExName={exRestNext} />
         )}
       </div>
     );
