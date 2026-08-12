@@ -129,6 +129,7 @@ const STR = {
     navSettings: 'الإعدادات',
     noWeight: 'لم يُسجَّل بعد',
     nextEx: 'التالي', exRestLabel: 'راحة بين التمارين',
+    exDone: 'مكتمل', exLeft: 'باقي',
     settings: 'الإعدادات',
     unitLabel: 'وحدة الوزن',
     resetData: 'إعادة ضبط البيانات',
@@ -193,6 +194,7 @@ const STR = {
     navSettings: 'Settings',
     noWeight: 'Not logged yet',
     nextEx: 'Next', exRestLabel: 'Exercise Rest',
+    exDone: 'Done', exLeft: 'Left',
     settings: 'Settings',
     unitLabel: 'Weight Unit',
     resetData: 'Reset All Data',
@@ -1426,19 +1428,71 @@ export default function App() {
                 {t.totalVol}: <span style={{ color: ACCENT, fontWeight: 700 }}>{runningVol.toLocaleString()} {t.kg}</span>
               </span>
             )}
-            <span style={{ fontSize: 12, color: MUTED, marginInlineStart: 'auto' }} dir="ltr">
-              {doneCount}/{session.exercises.length}
-            </span>
           </div>
 
-          {/* Progress bar */}
-          <div style={{ height: 3, background: '#1e1e1e', borderRadius: 4, marginBottom: 14 }}>
-            <div style={{
-              height: '100%', background: ACCENT, borderRadius: 4,
-              width: `${(doneCount / session.exercises.length) * 100}%`,
-              transition: 'width .3s',
-            }} />
-          </div>
+          {/* Exercise progress card */}
+          {(() => {
+            const leftCount = session.exercises.length - doneCount;
+            const pct = Math.round((doneCount / session.exercises.length) * 100);
+            const allFinished = doneCount === session.exercises.length;
+            return (
+              <div style={{
+                background: 'linear-gradient(135deg, #0d0d0d, #181818)',
+                borderRadius: 16, padding: '14px 16px', marginBottom: 14,
+                border: `1px solid ${allFinished ? GREEN + '44' : '#222'}`,
+                transition: 'border-color .3s',
+              }}>
+                {/* Done / Left chips */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                  <div style={{
+                    flex: 1, textAlign: 'center',
+                    background: GREEN + '18', borderRadius: 12, padding: '10px 6px',
+                    border: `1px solid ${GREEN}33`,
+                  }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: GREEN, lineHeight: 1 }} dir="ltr">{doneCount}</div>
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{t.exDone}</div>
+                  </div>
+                  <div style={{
+                    flex: 1, textAlign: 'center',
+                    background: '#181818', borderRadius: 12, padding: '10px 6px',
+                    border: '1px solid #2a2a2a',
+                  }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: leftCount === 0 ? GREEN : '#fff', lineHeight: 1 }} dir="ltr">{leftCount}</div>
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{t.exLeft}</div>
+                  </div>
+                </div>
+
+                {/* Exercise dots */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
+                  {session.exercises.map((ex, i) => (
+                    <div key={i} style={{
+                      width: 9, height: 9, borderRadius: '50%',
+                      background: ex.done >= ex.sets ? GREEN : ex.done > 0 ? ACCENT + '99' : '#2a2a2a',
+                      boxShadow: ex.done >= ex.sets ? `0 0 6px ${GREEN}88` : 'none',
+                      transition: 'background .3s, box-shadow .3s',
+                    }} />
+                  ))}
+                </div>
+
+                {/* Progress bar + % */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, height: 5, background: '#1e1e1e', borderRadius: 8 }}>
+                    <div style={{
+                      height: '100%', borderRadius: 8,
+                      background: allFinished
+                        ? GREEN
+                        : `linear-gradient(90deg, ${GREEN}99, ${ACCENT})`,
+                      width: `${pct}%`,
+                      transition: 'width .35s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: allFinished ? GREEN : MUTED, minWidth: 32, textAlign: 'end' }} dir="ltr">
+                    {pct}%
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Feature 3: Use Last Weights button */}
           {lastWeights && (
