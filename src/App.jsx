@@ -728,7 +728,7 @@ function CardioScreen({ t, dir, dayDef, lang, onFinish, onBack, setLang, resumeT
 export default function App() {
   const [settings, setSettings] = useState(() => loadSettings() || INIT_SETTINGS);
   const [lang, setLangState]    = useState(() => (loadSettings() || INIT_SETTINGS).lang);
-  const [screen, setScreen] = useState(() => loadSession() ? 'home' : 'splash');
+  const [screen, setScreen] = useState('splash');
   const [data, setData]     = useState(() => loadData() || INIT_DATA);
   const [ci, setCi]         = useState({ e: null, s: null, inj: false, injNote: '' });
   const [session, setSession] = useState(() => loadSession());
