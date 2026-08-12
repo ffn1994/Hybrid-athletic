@@ -121,6 +121,7 @@ const STR = {
     useLastWeights: 'أوزان الجلسة السابقة',
     volume: 'حجم', totalVol: 'الحجم الكلي',
     export: 'تصدير CSV',
+    diffLabel: 'الصعوبة', diffEasy: 'سهل', diffMed: 'متوسط', diffHard: 'صعب',
     navSettings: 'الإعدادات',
     settings: 'الإعدادات',
     unitLabel: 'وحدة الوزن',
@@ -178,6 +179,7 @@ const STR = {
     useLastWeights: 'Use Last Weights',
     volume: 'Vol', totalVol: 'Total Volume',
     export: 'Export CSV',
+    diffLabel: 'Difficulty', diffEasy: 'Easy', diffMed: 'Medium', diffHard: 'Hard',
     navSettings: 'Settings',
     settings: 'Settings',
     unitLabel: 'Weight Unit',
@@ -821,6 +823,7 @@ export default function App() {
           ...ex,
           weight: data.weights[ex.name] ?? '',
           actualReps: ex.reps ?? null,
+          difficulty: null,
           done: 0,
         }))
       : null;
@@ -1404,12 +1407,35 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Feature 1: per-exercise volume */}
+                {/* per-exercise volume */}
                 {exVol > 0 && (
                   <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }} dir="ltr">
                     {t.volume}: <span style={{ color: '#ccc', fontWeight: 700 }}>{exVol.toLocaleString()} {t.kg}</span>
                   </div>
                 )}
+
+                {/* Difficulty rating */}
+                <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, color: MUTED }}>{t.diffLabel}:</span>
+                  {[
+                    { key: 'easy',   label: t.diffEasy, color: GREEN },
+                    { key: 'medium', label: t.diffMed,  color: YELLOW },
+                    { key: 'hard',   label: t.diffHard,  color: RED },
+                  ].map(({ key, label, color }) => {
+                    const sel = ex.difficulty === key;
+                    return (
+                      <button key={key} onClick={() => patchEx(i, { difficulty: sel ? null : key })} style={{
+                        padding: '4px 12px', borderRadius: 8,
+                        border: `1px solid ${sel ? color : '#333'}`,
+                        background: sel ? color + '22' : '#1a1a1a',
+                        color: sel ? color : MUTED,
+                        fontSize: 12, fontWeight: sel ? 700 : 400,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'all .15s',
+                      }}>{label}</button>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
