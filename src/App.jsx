@@ -122,7 +122,12 @@ const STR = {
     volume: 'حجم', totalVol: 'الحجم الكلي',
     export: 'تصدير CSV',
     diffLabel: 'الصعوبة', diffEasy: 'سهل', diffMed: 'متوسط', diffHard: 'صعب',
+    diffBreakdown: 'تقييم التمارين',
+    suggest: 'مقترح',
+    weightsView: 'الأوزان', progressView: 'الرسوم',
+    sessionBanner: 'جلسة مفتوحة', sessionBannerSub: 'اضغط للاستكمال',
     navSettings: 'الإعدادات',
+    noWeight: 'لم يُسجَّل بعد',
     settings: 'الإعدادات',
     unitLabel: 'وحدة الوزن',
     resetData: 'إعادة ضبط البيانات',
@@ -180,7 +185,12 @@ const STR = {
     volume: 'Vol', totalVol: 'Total Volume',
     export: 'Export CSV',
     diffLabel: 'Difficulty', diffEasy: 'Easy', diffMed: 'Medium', diffHard: 'Hard',
+    diffBreakdown: 'Exercise Ratings',
+    suggest: 'Suggested',
+    weightsView: 'Weights', progressView: 'Charts',
+    sessionBanner: 'Open Session', sessionBannerSub: 'Tap to resume',
     navSettings: 'Settings',
+    noWeight: 'Not logged yet',
     settings: 'Settings',
     unitLabel: 'Weight Unit',
     resetData: 'Reset All Data',
@@ -248,7 +258,7 @@ function buildWeightHistory(sessions) {
         if (!map[ex.name]) map[ex.name] = [];
         const last = map[ex.name][map[ex.name].length - 1];
         if (!last || last.date !== s.date) {
-          map[ex.name].push({ date: s.date, weight: w });
+          map[ex.name].push({ date: s.date, weight: w, difficulty: ex.difficulty ?? null });
         }
       }
     });
@@ -389,12 +399,15 @@ function LineChart({ points, color = ACCENT }) {
       ))}
       <path d={area} fill="url(#areaGrad)" />
       <polyline points={polyline} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={cx(i)} cy={cy(p.weight)} r="4" fill={color} />
-          <text x={cx(i)} y={cy(p.weight) - 8} textAnchor="middle" fill="#fff" fontSize="9">{p.weight}</text>
-        </g>
-      ))}
+      {points.map((p, i) => {
+        const dc = p.difficulty === 'easy' ? GREEN : p.difficulty === 'hard' ? RED : p.difficulty === 'medium' ? YELLOW : color;
+        return (
+          <g key={i}>
+            <circle cx={cx(i)} cy={cy(p.weight)} r="5" fill={dc} stroke="#000" strokeWidth="1" />
+            <text x={cx(i)} y={cy(p.weight) - 9} textAnchor="middle" fill="#fff" fontSize="9">{p.weight}</text>
+          </g>
+        );
+      })}
       {uniqueX.map(i => (
         <text key={i}
           x={cx(i)} y={H - 4}
@@ -414,6 +427,7 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
   const history   = buildWeightHistory(data.sessions);
   const exercises = Object.keys(history).filter(k => history[k].length > 0);
   const [sel, setSel] = useState(exercises[0] ?? null);
+  const [view, setView] = useState('charts');
 
   const points = sel ? history[sel] : [];
   const weights = points.map(p => p.weight);
@@ -422,17 +436,79 @@ function ProgressScreen({ data, t, dir, lang, onBack, setLang }) {
   const first  = weights.length ? weights[0] : null;
   const change = (last != null && first != null) ? last - first : null;
 
+  // All exercises from PROGRAM for weights view
+  const allExercises = PROGRAM.flatMap(d => d.exercises ?? []);
+
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: "'Tajawal', sans-serif", direction: dir }}>
       <Header title={t.progress} onBack={onBack} lang={lang} setLang={setLang} />
       <div style={{ padding: '16px 16px 100px' }}>
-        {exercises.length === 0 ? (
+
+        {/* View toggle */}
+        <div style={{ display: 'flex', background: '#111', borderRadius: 12, padding: 3, marginBottom: 16 }}>
+          {[{ key: 'charts', label: t.progressView }, { key: 'weights', label: t.weightsView }].map(({ key, label }) => (
+            <button key={key} onClick={() => setView(key)} style={{
+              flex: 1, padding: '8px 0', borderRadius: 10,
+              background: view === key ? CARD : 'transparent',
+              border: 'none', color: view === key ? '#fff' : MUTED,
+              fontWeight: view === key ? 700 : 400, fontSize: 14,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s',
+            }}>{label}</button>
+          ))}
+        </div>
+        {/* ── Weights view ── */}
+        {view === 'weights' && (
+          <>
+            {PROGRAM.map(day => (
+              <div key={day.id} style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 18 }}>{day.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: DAY_COLORS[day.type] }}>
+                    {lang === 'ar' ? day.ar : day.en}
+                  </span>
+                </div>
+                {(day.exercises ?? []).map(ex => {
+                  const w = data.weights[ex.name];
+                  const pts = history[ex.name] ?? [];
+                  const prev = pts.length >= 2 ? pts[pts.length - 2]?.weight : null;
+                  const diff = w != null && prev != null ? Number(w) - Number(prev) : null;
+                  return (
+                    <div key={ex.name} style={{
+                      background: CARD, borderRadius: 12, padding: '12px 14px', marginBottom: 8,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{ex.name}</div>
+                        <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                          {lang === 'ar' ? ex.muscleAr : ex.muscleEn}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'end' }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: w != null ? '#fff' : MUTED }} dir="ltr">
+                          {w != null ? `${w} ${t.kg}` : t.noWeight}
+                        </div>
+                        {diff != null && (
+                          <div style={{ fontSize: 11, color: diff > 0 ? GREEN : diff < 0 ? RED : MUTED }} dir="ltr">
+                            {diff > 0 ? `+${diff}` : diff} {t.kg}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* ── Charts view ── */}
+        {view === 'charts' && exercises.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>{t.noData}</div>
             <div style={{ fontSize: 13, color: MUTED }}>{t.noDataSub}</div>
           </div>
-        ) : (
+        ) : view === 'charts' && (
           <>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16 }}>
               {exercises.map(ex => {
@@ -954,9 +1030,25 @@ export default function App() {
           </div>
 
           {session ? (
-            <Btn onClick={() => go(session.exercises ? 'workout' : 'cardio')} style={{ background: '#1a6b3a', color: '#fff', marginBottom: 4 }}>
-              ▶ {t.resumeSession}
-            </Btn>
+            <div
+              onClick={() => go(session.exercises ? 'workout' : 'cardio')}
+              style={{
+                background: `linear-gradient(135deg, #0e3d22, #1a6b3a33)`,
+                border: `2px solid ${GREEN}`,
+                borderRadius: 16, padding: '16px 18px', marginBottom: 8,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                boxShadow: `0 0 24px ${GREEN}44`,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 26 }}>▶️</span>
+                <div style={{ textAlign: dir === 'rtl' ? 'right' : 'left' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: GREEN }}>{t.sessionBanner}</div>
+                  <div style={{ fontSize: 12, color: MUTED }}>{t.sessionBannerSub}</div>
+                </div>
+              </div>
+              <span style={{ color: GREEN, fontSize: 22 }}>{dir === 'rtl' ? '←' : '→'}</span>
+            </div>
           ) : !todayDone ? (
             <>
               <Btn onClick={() => go('checkin')}>{t.start}</Btn>
@@ -1386,6 +1478,24 @@ export default function App() {
                         {t.prev}: <span dir="ltr">{prevW}</span>
                       </div>
                     )}
+                    {(() => {
+                      const lastCompleted = data.sessions.find(s => s.status === 'completed');
+                      const lastDiff = lastCompleted?.exercises?.find(e => e.name === ex.name)?.difficulty;
+                      const exUnit = (settings.exUnits || {})[ex.name] || settings.unit;
+                      const wStep = exUnit === 'lbs' ? 5 : 2.5;
+                      const suggested = prevW != null && lastDiff === 'easy'
+                        ? Number(prevW) + wStep
+                        : prevW != null && lastDiff === 'hard'
+                          ? Math.max(0, Number(prevW) - wStep)
+                          : null;
+                      if (suggested == null) return null;
+                      const upward = lastDiff === 'easy';
+                      return (
+                        <div style={{ fontSize: 11, color: upward ? GREEN : RED, marginTop: 3 }}>
+                          {upward ? '↑' : '↓'} {t.suggest}: <span dir="ltr">{suggested} {exUnit}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -1536,6 +1646,32 @@ export default function App() {
               <div style={{ fontSize: 14 }}>{lastS.notes}</div>
             </div>
           )}
+
+          {(() => {
+            const exs = lastS?.exercises ?? [];
+            const easy   = exs.filter(e => e.difficulty === 'easy').length;
+            const medium = exs.filter(e => e.difficulty === 'medium').length;
+            const hard   = exs.filter(e => e.difficulty === 'hard').length;
+            const rated  = easy + medium + hard;
+            if (rated === 0) return null;
+            return (
+              <div style={{ background: CARD, borderRadius: 14, padding: '14px 18px', marginBottom: 16, textAlign: 'start' }}>
+                <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>{t.diffBreakdown}</div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[
+                    { label: t.diffEasy, val: easy,   color: GREEN },
+                    { label: t.diffMed,  val: medium, color: YELLOW },
+                    { label: t.diffHard, val: hard,   color: RED },
+                  ].filter(x => x.val > 0).map(({ label, val, color }) => (
+                    <div key={label} style={{ flex: 1, background: color + '15', borderRadius: 10, padding: '10px 6px', textAlign: 'center', border: `1px solid ${color}44` }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color }} dir="ltr">{val}</div>
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           <Btn onClick={() => go('home')} style={{ marginTop: 8 }}>{t.home}</Btn>
         </div>
